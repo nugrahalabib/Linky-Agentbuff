@@ -50,6 +50,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof data.title === "string") patch.title = data.title;
   if (typeof data.description === "string") patch.description = data.description;
   if (typeof data.archived === "boolean") patch.archived = data.archived;
+  if (typeof data.cloak === "boolean") patch.cloak = data.cloak;
+  if (data.folderId !== undefined) patch.folderId = data.folderId || null;
   if (data.clearPassword) patch.passwordHash = null;
   else if (typeof data.password === "string" && data.password.length > 0) {
     patch.passwordHash = await bcrypt.hash(data.password, 10);
@@ -58,6 +60,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof data.clickLimit === "number") patch.clickLimit = data.clickLimit || null;
   if (typeof data.iosUrl === "string") patch.iosUrl = data.iosUrl || null;
   if (typeof data.androidUrl === "string") patch.androidUrl = data.androidUrl || null;
+  if (typeof data.ogTitle === "string") patch.ogTitle = data.ogTitle || null;
+  if (typeof data.ogDescription === "string") patch.ogDescription = data.ogDescription || null;
+  if (typeof data.ogImage === "string") patch.ogImage = data.ogImage || null;
 
   if (data.utmSource || data.utmMedium || data.utmCampaign || data.utmTerm || data.utmContent) {
     const utm: Record<string, string> = {};
