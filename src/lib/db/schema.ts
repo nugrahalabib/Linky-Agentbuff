@@ -102,6 +102,12 @@ export const tags = sqliteTable(
   (t) => [uniqueIndex("tags_workspace_name_idx").on(t.workspaceId, t.name)],
 );
 
+export interface AbVariant {
+  url: string;
+  weight: number;
+  label?: string;
+}
+
 export const links = sqliteTable(
   "links",
   {
@@ -121,6 +127,7 @@ export const links = sqliteTable(
     androidUrl: text("android_url"),
     utmParams: text("utm_params", { mode: "json" }).$type<Record<string, string>>(),
     geoRules: text("geo_rules", { mode: "json" }).$type<Array<{ country: string; url: string }>>(),
+    abVariants: text("ab_variants", { mode: "json" }).$type<AbVariant[]>(),
     ogTitle: text("og_title"),
     ogDescription: text("og_description"),
     ogImage: text("og_image"),
@@ -198,6 +205,7 @@ export const clicks = sqliteTable(
     utmSource: text("utm_source"),
     utmMedium: text("utm_medium"),
     utmCampaign: text("utm_campaign"),
+    abVariant: text("ab_variant"),
   },
   (t) => [index("clicks_link_ts_idx").on(t.linkId, t.ts), index("clicks_ts_idx").on(t.ts)],
 );
@@ -261,6 +269,85 @@ export const utmRecipes = sqliteTable(
   ],
 );
 
+export interface LinkyPageBlock {
+  id: string;
+  kind: "header" | "link" | "social" | "text" | "divider" | "youtube" | "image" | "countdown";
+  data: Record<string, unknown>;
+}
+
+export interface LinkyPageTheme {
+  preset?: "creator" | "minimal" | "neon" | "student" | "umkm";
+  primary?: string;
+  background?: string;
+  font?: "inter" | "poppins" | "geist";
+  buttonStyle?: "filled" | "outline" | "soft" | "glass";
+}
+
+export const linkyPages = sqliteTable(
+  "linky_pages",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    theme: text("theme", { mode: "json" }).$type<LinkyPageTheme>(),
+    background: text("background"),
+    blocks: text("blocks", { mode: "json" })
+      .$type<LinkyPageBlock[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    views: integer("views").notNull().default(0),
+    published: integer("published", { mode: "boolean" }).notNull().default(true),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("linky_pages_slug_idx").on(t.slug), index("linky_pages_workspace_idx").on(t.workspaceId)],
+);
+
+export const linkyPageClicks = sqliteTable(
+  "linky_page_clicks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    pageId: text("page_id")
+      .notNull()
+      .references(() => linkyPages.id, { onDelete: "cascade" }),
+    blockId: text("block_id"),
+    ts: integer("ts", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    referrer: text("referrer"),
+    country: text("country"),
+    ipHash: text("ip_hash"),
+  },
+  (t) => [index("lpc_page_idx").on(t.pageId, t.ts)],
+);
+
+export const webhooks = sqliteTable(
+  "webhooks",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    events: text("events", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'["link.clicked"]'`),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    lastDeliveryAt: integer("last_delivery_at", { mode: "timestamp_ms" }),
+    lastStatusCode: integer("last_status_code"),
+    failureCount: integer("failure_count").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index("webhooks_workspace_idx").on(t.workspaceId)],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Link = typeof links.$inferSelect;
@@ -274,3 +361,7 @@ export type Folder = typeof folders.$inferSelect;
 export type Domain = typeof domains.$inferSelect;
 export type QrCode = typeof qrCodes.$inferSelect;
 export type UtmRecipe = typeof utmRecipes.$inferSelect;
+export type LinkyPage = typeof linkyPages.$inferSelect;
+export type Webhook = typeof webhooks.$inferSelect;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type AbuseReport = typeof abuseReports.$inferSelect;

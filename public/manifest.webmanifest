@@ -1,0 +1,14 @@
+{
+  "name": "Linky — Link pendek. Cerita panjang.",
+  "short_name": "Linky",
+  "description": "URL shortener modern — analitik real-time, QR branded, targeting cerdas.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafafa",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["productivity", "business", "utilities"]
+}

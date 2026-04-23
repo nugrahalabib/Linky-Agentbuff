@@ -1,0 +1,44 @@
+services:
+  linky:
+    build: .
+    image: linky:latest
+    container_name: linky-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "1709"
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://linky.agentbuff.id}
+      AUTH_SECRET: ${AUTH_SECRET}
+      DATABASE_URL: ${DATABASE_URL:-file:/data/linky.db}
+      REDIS_URL: ${REDIS_URL:-}
+    ports:
+      - "127.0.0.1:1709:1709"
+    volumes:
+      - linky-data:/data
+    networks:
+      - linky-net
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: linky-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - linky-net
+    depends_on:
+      - linky
+
+volumes:
+  linky-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  linky-net:
+    driver: bridge

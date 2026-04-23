@@ -12,6 +12,7 @@ export interface ClickContext {
   country?: string | null;
   region?: string | null;
   city?: string | null;
+  abVariant?: string | null;
 }
 
 const BOT_RE = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegrambot|discordbot|embedly|vkshare|w3c_validator|qwantify/i;
@@ -37,6 +38,7 @@ export function recordClick(ctx: ClickContext): void {
         referrer: ctx.referrer ?? null,
         ipHash: hashIp(ctx.ip),
         isBot: bot,
+        abVariant: ctx.abVariant ?? null,
       })
       .run();
     if (!bot) {
