@@ -121,6 +121,10 @@ export const links = sqliteTable(
     androidUrl: text("android_url"),
     utmParams: text("utm_params", { mode: "json" }).$type<Record<string, string>>(),
     geoRules: text("geo_rules", { mode: "json" }).$type<Array<{ country: string; url: string }>>(),
+    ogTitle: text("og_title"),
+    ogDescription: text("og_description"),
+    ogImage: text("og_image"),
+    cloak: integer("cloak", { mode: "boolean" }).notNull().default(false),
     clickCount: integer("click_count").notNull().default(0),
     archived: integer("archived", { mode: "boolean" }).notNull().default(false),
     isAnonymous: integer("is_anonymous", { mode: "boolean" }).notNull().default(false),
@@ -235,6 +239,28 @@ export const abuseReports = sqliteTable(
   (t) => [index("abuse_link_idx").on(t.linkId), index("abuse_status_idx").on(t.status)],
 );
 
+export const utmRecipes = sqliteTable(
+  "utm_recipes",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    utmTerm: text("utm_term"),
+    utmContent: text("utm_content"),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [
+    index("utm_recipes_workspace_idx").on(t.workspaceId),
+    uniqueIndex("utm_recipes_workspace_name_idx").on(t.workspaceId, t.name),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Link = typeof links.$inferSelect;
@@ -247,3 +273,4 @@ export type Tag = typeof tags.$inferSelect;
 export type Folder = typeof folders.$inferSelect;
 export type Domain = typeof domains.$inferSelect;
 export type QrCode = typeof qrCodes.$inferSelect;
+export type UtmRecipe = typeof utmRecipes.$inferSelect;

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, isNull, like, or } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, like, lte, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { links } from "@/lib/db/schema";
+import { links, linkTags, tags as tagsTable } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 import { generateSlug, isValidSlug } from "@/lib/slug";
 import { createLinkSchema } from "@/lib/validators";
@@ -15,18 +15,73 @@ export async function GET(req: Request) {
   const workspace = await ensureWorkspace(ctx.user.id);
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim().toLowerCase() ?? "";
-  const limit = Math.min(Number(url.searchParams.get("limit") ?? "50"), 200);
+  const folderId = url.searchParams.get("folder") ?? null;
+  const tagIdsRaw = url.searchParams.get("tags");
+  const tagIds = tagIdsRaw ? tagIdsRaw.split(",").filter(Boolean) : [];
+  const archived = url.searchParams.get("archived") === "1";
+  const fromRaw = url.searchParams.get("from");
+  const toRaw = url.searchParams.get("to");
+  const limit = Math.min(Number(url.searchParams.get("limit") ?? "100"), 500);
 
-  const whereClause = q
-    ? and(
-        eq(links.workspaceId, workspace.id),
-        eq(links.archived, false),
-        or(like(links.slug, `%${q}%`), like(links.destinationUrl, `%${q}%`), like(links.title, `%${q}%`)),
-      )
-    : and(eq(links.workspaceId, workspace.id), eq(links.archived, false));
+  const conditions = [eq(links.workspaceId, workspace.id), eq(links.archived, archived)];
+  if (q) {
+    conditions.push(
+      or(
+        like(sql`lower(${links.slug})`, `%${q}%`),
+        like(sql`lower(${links.destinationUrl})`, `%${q}%`),
+        like(sql`lower(${links.title})`, `%${q}%`),
+      )!,
+    );
+  }
+  if (folderId === "_null") conditions.push(isNull(links.folderId));
+  else if (folderId) conditions.push(eq(links.folderId, folderId));
+  if (fromRaw) {
+    const d = new Date(fromRaw);
+    if (!isNaN(d.getTime())) conditions.push(gte(links.createdAt, d));
+  }
+  if (toRaw) {
+    const d = new Date(toRaw);
+    if (!isNaN(d.getTime())) conditions.push(lte(links.createdAt, d));
+  }
 
-  const rows = db.select().from(links).where(whereClause).orderBy(desc(links.createdAt)).limit(limit).all();
-  return NextResponse.json({ links: rows });
+  let rows = db
+    .select()
+    .from(links)
+    .where(and(...conditions))
+    .orderBy(desc(links.createdAt))
+    .limit(limit)
+    .all();
+
+  // Tag filter (post-query for simplicity; good enough for per-workspace volumes)
+  if (tagIds.length > 0) {
+    const tagged = db
+      .select({ linkId: linkTags.linkId })
+      .from(linkTags)
+      .where(inArray(linkTags.tagId, tagIds))
+      .all()
+      .map((r) => r.linkId);
+    const set = new Set(tagged);
+    rows = rows.filter((l) => set.has(l.id));
+  }
+
+  // Attach tags
+  const ids = rows.map((l) => l.id);
+  const tagMap = new Map<string, Array<{ id: string; name: string; color: string }>>();
+  if (ids.length > 0) {
+    const tagRows = db
+      .select({ linkId: linkTags.linkId, id: tagsTable.id, name: tagsTable.name, color: tagsTable.color })
+      .from(linkTags)
+      .innerJoin(tagsTable, eq(tagsTable.id, linkTags.tagId))
+      .where(inArray(linkTags.linkId, ids))
+      .all();
+    for (const t of tagRows) {
+      const arr = tagMap.get(t.linkId) ?? [];
+      arr.push({ id: t.id, name: t.name, color: t.color });
+      tagMap.set(t.linkId, arr);
+    }
+  }
+  const enriched = rows.map((l) => ({ ...l, tags: tagMap.get(l.id) ?? [] }));
+  return NextResponse.json({ links: enriched, count: enriched.length });
 }
 
 export async function POST(req: Request) {
@@ -103,10 +158,27 @@ export async function POST(req: Request) {
       iosUrl: parsed.data.iosUrl || null,
       androidUrl: parsed.data.androidUrl || null,
       utmParams: Object.keys(utmParams).length > 0 ? utmParams : null,
+      ogTitle: parsed.data.ogTitle || null,
+      ogDescription: parsed.data.ogDescription || null,
+      ogImage: parsed.data.ogImage || null,
+      cloak: Boolean(parsed.data.cloak),
+      folderId: parsed.data.folderId || null,
       createdBy: ctx.user.id,
     })
     .run();
 
   const created = db.select().from(links).where(eq(links.id, id)).get();
+
+  // Assign tags if passed
+  if (parsed.data.tagIds && parsed.data.tagIds.length > 0) {
+    const valid = db
+      .select({ id: tagsTable.id })
+      .from(tagsTable)
+      .where(and(eq(tagsTable.workspaceId, workspace.id), inArray(tagsTable.id, parsed.data.tagIds)))
+      .all()
+      .map((t) => t.id);
+    for (const tagId of valid) db.insert(linkTags).values({ linkId: id, tagId }).run();
+  }
+
   return NextResponse.json({ link: created });
 }

@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
-import { Plus, Link as LinkIcon } from "lucide-react";
+import { Plus, Link as LinkIcon, Download, Upload } from "lucide-react";
 import { db } from "@/lib/db";
-import { links } from "@/lib/db/schema";
+import { folders, links, tags as tagsTable } from "@/lib/db/schema";
 import { ensureWorkspace, requireUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LinksTable } from "@/components/links-table";
+import { LinksBrowser } from "@/components/links-browser";
 
 export default async function LinksPage() {
   const user = await requireUser();
@@ -18,6 +18,8 @@ export default async function LinksPage() {
     .where(and(eq(links.workspaceId, workspace.id), eq(links.archived, false)))
     .orderBy(desc(links.createdAt))
     .all();
+  const allFolders = db.select().from(folders).where(eq(folders.workspaceId, workspace.id)).all();
+  const allTags = db.select().from(tagsTable).where(eq(tagsTable.workspaceId, workspace.id)).all();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";
 
   return (
@@ -26,15 +28,27 @@ export default async function LinksPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Link kamu</h1>
           <p className="text-sm text-[color:var(--muted-foreground)] mt-1">
-            Kelola semua link. Klik untuk detail, analitik, dan pengaturan.
+            {rows.length} link aktif. Gunakan filter untuk mempersempit.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/links/new">
-            <Plus className="h-4 w-4" />
-            Link baru
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/import">
+              <Upload className="h-4 w-4" /> Import
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/api/links/export" prefetch={false}>
+              <Download className="h-4 w-4" /> Export
+            </Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/dashboard/links/new">
+              <Plus className="h-4 w-4" />
+              Link baru
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {rows.length === 0 ? (
@@ -56,7 +70,7 @@ export default async function LinksPage() {
           </CardContent>
         </Card>
       ) : (
-        <LinksTable initialLinks={rows} appUrl={appUrl} />
+        <LinksBrowser initialLinks={rows} folders={allFolders} tags={allTags} appUrl={appUrl} />
       )}
     </div>
   );

@@ -34,6 +34,12 @@ export const createLinkSchema = z.object({
   utmCampaign: z.string().max(100).optional(),
   utmTerm: z.string().max(100).optional(),
   utmContent: z.string().max(100).optional(),
+  ogTitle: z.string().max(200).optional(),
+  ogDescription: z.string().max(500).optional(),
+  ogImage: z.string().url().optional().or(z.literal("")),
+  cloak: z.boolean().optional(),
+  folderId: z.string().max(20).optional().nullable(),
+  tagIds: z.array(z.string().max(20)).max(50).optional(),
 });
 export type CreateLinkInput = z.infer<typeof createLinkSchema>;
 

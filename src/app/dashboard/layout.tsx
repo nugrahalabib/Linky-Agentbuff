@@ -1,14 +1,35 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BarChart3, Home, LinkIcon, LogOut, QrCode, Settings } from "lucide-react";
+import {
+  BarChart3,
+  Download,
+  Folder,
+  Home,
+  Link as LinkIcon,
+  LogOut,
+  QrCode,
+  Settings,
+  Tag,
+  Upload,
+  Zap,
+} from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { getSessionUser } from "@/lib/auth";
+import { CommandPalette } from "@/components/command-palette";
+import { SearchTrigger } from "@/components/search-trigger";
 
-const nav = [
-  { href: "/dashboard", label: "Beranda", icon: Home, exact: true },
+const primary = [
+  { href: "/dashboard", label: "Beranda", icon: Home },
   { href: "/dashboard/links", label: "Link", icon: LinkIcon },
   { href: "/dashboard/analytics", label: "Analitik", icon: BarChart3 },
-  { href: "/dashboard/qr", label: "Studio QR", icon: QrCode },
+  { href: "/dashboard/qr", label: "QR", icon: QrCode },
+];
+
+const secondary = [
+  { href: "/dashboard/folders", label: "Folder", icon: Folder },
+  { href: "/dashboard/tags", label: "Tag", icon: Tag },
+  { href: "/dashboard/utm-recipes", label: "UTM Recipes", icon: Zap },
+  { href: "/dashboard/import", label: "Import CSV", icon: Upload },
   { href: "/dashboard/settings", label: "Pengaturan", icon: Settings },
 ];
 
@@ -23,17 +44,41 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Logo />
           </Link>
         </div>
-        <nav className="flex-1 flex flex-col gap-1 px-3">
-          {nav.map((n) => (
+        <div className="px-3 pb-2">
+          <SearchTrigger />
+        </div>
+        <nav className="flex-1 flex flex-col gap-1 px-3 overflow-y-auto">
+          {primary.map((n) => (
             <Link
               key={n.href}
               href={n.href}
-              className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium text-[color:var(--muted-foreground)] hover:bg-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+              className="flex items-center gap-3 rounded-[8px] px-3 py-2 text-sm font-medium text-[color:var(--muted-foreground)] hover:bg-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
             >
               <n.icon className="h-4 w-4 shrink-0" />
               {n.label}
             </Link>
           ))}
+          <div className="mt-3 mb-1 px-3 text-[10px] uppercase tracking-wider text-[color:var(--muted-foreground)]">
+            Kelola
+          </div>
+          {secondary.map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              className="flex items-center gap-3 rounded-[8px] px-3 py-2 text-sm font-medium text-[color:var(--muted-foreground)] hover:bg-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+            >
+              <n.icon className="h-4 w-4 shrink-0" />
+              {n.label}
+            </Link>
+          ))}
+          <Link
+            href="/api/links/export"
+            prefetch={false}
+            className="flex items-center gap-3 rounded-[8px] px-3 py-2 text-sm font-medium text-[color:var(--muted-foreground)] hover:bg-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+          >
+            <Download className="h-4 w-4 shrink-0" />
+            Export CSV
+          </Link>
         </nav>
         <div className="border-t border-[color:var(--border)] p-3">
           <div className="mb-2 px-3 py-2">
@@ -43,7 +88,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
-              className="w-full flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium text-[color:var(--muted-foreground)] hover:bg-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+              className="w-full flex items-center gap-3 rounded-[8px] px-3 py-2 text-sm font-medium text-[color:var(--muted-foreground)] hover:bg-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
             >
               <LogOut className="h-4 w-4" />
               Keluar
@@ -68,7 +113,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           aria-label="Navigasi utama"
           className="md:hidden sticky bottom-0 z-20 border-t border-[color:var(--border)] bg-[color:var(--card)]/95 backdrop-blur grid grid-cols-5"
         >
-          {nav.map((n) => (
+          {[...primary, { href: "/dashboard/settings", label: "Lainnya", icon: Settings }].map((n) => (
             <Link
               key={n.href}
               href={n.href}
@@ -80,6 +125,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
           ))}
         </nav>
       </div>
+
+      <CommandPalette />
     </div>
   );
 }

@@ -33,6 +33,23 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const country = req.headers.get("cf-ipcountry") ?? req.headers.get("x-vercel-ip-country");
   const target = pickTargetUrl(link, ua, country);
 
+  if (link.cloak) {
+    // Redirect to cloaked frame page which keeps the short URL visible
+    const url = new URL(`/c/${encodeURIComponent(slug)}`, appUrl);
+    if (!isBot(ua)) {
+      recordClick({
+        linkId: link.id,
+        ip: getClientIp(req),
+        ua,
+        referrer: req.headers.get("referer"),
+        country,
+        region: req.headers.get("x-vercel-ip-country-region") ?? null,
+        city: req.headers.get("x-vercel-ip-city") ?? null,
+      });
+    }
+    return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "private, no-store" } });
+  }
+
   if (!isBot(ua)) {
     recordClick({
       linkId: link.id,

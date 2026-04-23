@@ -188,6 +188,35 @@ const MIGRATIONS = [
       );
     `,
   },
+  {
+    id: "0001_utm_recipes",
+    sql: `
+      CREATE TABLE IF NOT EXISTS utm_recipes (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        utm_source TEXT,
+        utm_medium TEXT,
+        utm_campaign TEXT,
+        utm_term TEXT,
+        utm_content TEXT,
+        created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS utm_recipes_workspace_idx ON utm_recipes(workspace_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS utm_recipes_workspace_name_idx ON utm_recipes(workspace_id, name);
+    `,
+  },
+  {
+    id: "0002_link_og_override",
+    sql: `
+      ALTER TABLE links ADD COLUMN og_title TEXT;
+      ALTER TABLE links ADD COLUMN og_description TEXT;
+      ALTER TABLE links ADD COLUMN og_image TEXT;
+      ALTER TABLE links ADD COLUMN cloak INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 function ensureDir(filePath: string): void {
