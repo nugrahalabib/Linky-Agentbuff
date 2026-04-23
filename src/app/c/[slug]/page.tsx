@@ -15,7 +15,9 @@ export default async function CloakPage({ params }: { params: Promise<{ slug: st
   const h = await headers();
   const ua = h.get("user-agent");
   const country = h.get("cf-ipcountry") ?? h.get("x-vercel-ip-country");
-  const target = pickTargetUrl(link, ua, country);
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+  const picked = pickTargetUrl(link, ua, country, ip);
+  const target = picked.url;
 
   const title = link.ogTitle || link.title || "Linky";
   return (

@@ -20,6 +20,7 @@ function makeLink(overrides: Partial<Link> = {}): Link {
     androidUrl: null,
     utmParams: null,
     geoRules: null,
+    abVariants: null,
     ogTitle: null,
     ogDescription: null,
     ogImage: null,
@@ -83,17 +84,17 @@ describe("resolve-link", () => {
   describe("pickTargetUrl", () => {
     it("uses default URL when no rules", () => {
       const l = makeLink();
-      expect(pickTargetUrl(l, null)).toBe("https://example.com");
+      expect(pickTargetUrl(l, null).url).toBe("https://example.com");
     });
     it("redirects iOS to iosUrl", () => {
       const l = makeLink({ iosUrl: "https://apps.apple.com/x" });
       const ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)";
-      expect(pickTargetUrl(l, ua)).toBe("https://apps.apple.com/x");
+      expect(pickTargetUrl(l, ua).url).toBe("https://apps.apple.com/x");
     });
     it("redirects Android to androidUrl", () => {
       const l = makeLink({ androidUrl: "https://play.google.com/x" });
       const ua = "Mozilla/5.0 (Linux; Android 14; Pixel 8)";
-      expect(pickTargetUrl(l, ua)).toBe("https://play.google.com/x");
+      expect(pickTargetUrl(l, ua).url).toBe("https://play.google.com/x");
     });
     it("applies geo rules before device rules", () => {
       const l = makeLink({
@@ -101,11 +102,11 @@ describe("resolve-link", () => {
         iosUrl: "https://apps.apple.com/x",
       });
       const ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)";
-      expect(pickTargetUrl(l, ua, "ID")).toBe("https://id.example.com");
+      expect(pickTargetUrl(l, ua, "ID").url).toBe("https://id.example.com");
     });
     it("falls through to default when geo does not match", () => {
       const l = makeLink({ geoRules: [{ country: "ID", url: "https://id.example.com" }] });
-      expect(pickTargetUrl(l, null, "US")).toBe("https://example.com");
+      expect(pickTargetUrl(l, null, "US").url).toBe("https://example.com");
     });
   });
 

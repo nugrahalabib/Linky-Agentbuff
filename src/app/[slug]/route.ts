@@ -31,20 +31,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
 
   const ua = req.headers.get("user-agent");
   const country = req.headers.get("cf-ipcountry") ?? req.headers.get("x-vercel-ip-country");
-  const target = pickTargetUrl(link, ua, country);
+  const clientIp = getClientIp(req);
+  const picked = pickTargetUrl(link, ua, country, clientIp);
+  const target = picked.url;
 
   if (link.cloak) {
-    // Redirect to cloaked frame page which keeps the short URL visible
     const url = new URL(`/c/${encodeURIComponent(slug)}`, appUrl);
     if (!isBot(ua)) {
       recordClick({
         linkId: link.id,
-        ip: getClientIp(req),
+        ip: clientIp,
         ua,
         referrer: req.headers.get("referer"),
         country,
         region: req.headers.get("x-vercel-ip-country-region") ?? null,
         city: req.headers.get("x-vercel-ip-city") ?? null,
+        abVariant: picked.variant ?? null,
       });
     }
     return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "private, no-store" } });
@@ -53,12 +55,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   if (!isBot(ua)) {
     recordClick({
       linkId: link.id,
-      ip: getClientIp(req),
+      ip: clientIp,
       ua,
       referrer: req.headers.get("referer"),
       country,
       region: req.headers.get("x-vercel-ip-country-region") ?? null,
       city: req.headers.get("x-vercel-ip-city") ?? null,
+      abVariant: picked.variant ?? null,
     });
   }
 

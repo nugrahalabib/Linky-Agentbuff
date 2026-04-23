@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  async rewrites() {
+    return [
+      // Nice URL: /@username → /u/username (Linky Page public view)
+      { source: "/@:username", destination: "/u/:username" },
+    ];
+  },
   async headers() {
     return [
       {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, Home, Link as LinkIcon, Plus, QrCode, Search, Settings, Tag as TagIcon, Folder, Upload, Download, Zap } from "lucide-react";
+import { BarChart3, Code2, Home, Layout, Link as LinkIcon, Plus, QrCode, Search, Settings, Tag as TagIcon, Folder, Upload, Download, Zap } from "lucide-react";
 
 type Cmd = { label: string; icon: React.ComponentType<{ className?: string }>; action: () => void; keywords?: string };
 
@@ -42,6 +42,8 @@ export function CommandPalette() {
     { label: "Lihat semua link", icon: LinkIcon, action: go("/dashboard/links") },
     { label: "Analitik keseluruhan", icon: BarChart3, action: go("/dashboard/analytics") },
     { label: "Studio QR", icon: QrCode, action: go("/dashboard/qr") },
+    { label: "Linky Pages", icon: Layout, action: go("/dashboard/pages"), keywords: "link in bio" },
+    { label: "Developer (API, Webhooks)", icon: Code2, action: go("/dashboard/developer"), keywords: "api key webhook" },
     { label: "Folder", icon: Folder, action: go("/dashboard/folders") },
     { label: "Tag", icon: TagIcon, action: go("/dashboard/tags") },
     { label: "UTM Recipes", icon: Zap, action: go("/dashboard/utm-recipes"), keywords: "utm templates" },

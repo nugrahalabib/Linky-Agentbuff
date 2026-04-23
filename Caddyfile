@@ -1,0 +1,27 @@
+linky.agentbuff.id {
+    encode gzip zstd
+
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+
+    reverse_proxy linky-app:1709 {
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    @healthz path /api/health
+    handle @healthz {
+        reverse_proxy linky-app:1709
+    }
+
+    log {
+        output stderr
+        format json
+    }
+}

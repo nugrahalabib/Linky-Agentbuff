@@ -217,6 +217,67 @@ const MIGRATIONS = [
       ALTER TABLE links ADD COLUMN cloak INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    id: "0003_ab_variants",
+    sql: `
+      ALTER TABLE links ADD COLUMN ab_variants TEXT;
+      ALTER TABLE clicks ADD COLUMN ab_variant TEXT;
+      CREATE INDEX IF NOT EXISTS clicks_ab_idx ON clicks(link_id, ab_variant);
+    `,
+  },
+  {
+    id: "0004_linky_pages",
+    sql: `
+      CREATE TABLE IF NOT EXISTS linky_pages (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        slug TEXT NOT NULL,
+        title TEXT NOT NULL,
+        bio TEXT,
+        avatar_url TEXT,
+        theme TEXT,
+        background TEXT,
+        blocks TEXT NOT NULL DEFAULT '[]',
+        views INTEGER NOT NULL DEFAULT 0,
+        published INTEGER NOT NULL DEFAULT 1,
+        created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS linky_pages_slug_idx ON linky_pages(slug);
+      CREATE INDEX IF NOT EXISTS linky_pages_workspace_idx ON linky_pages(workspace_id);
+
+      CREATE TABLE IF NOT EXISTS linky_page_clicks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        page_id TEXT NOT NULL REFERENCES linky_pages(id) ON DELETE CASCADE,
+        block_id TEXT,
+        ts INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+        referrer TEXT,
+        country TEXT,
+        ip_hash TEXT
+      );
+      CREATE INDEX IF NOT EXISTS lpc_page_idx ON linky_page_clicks(page_id, ts);
+    `,
+  },
+  {
+    id: "0005_webhooks",
+    sql: `
+      CREATE TABLE IF NOT EXISTS webhooks (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        secret TEXT NOT NULL,
+        events TEXT NOT NULL DEFAULT '["link.clicked"]',
+        active INTEGER NOT NULL DEFAULT 1,
+        last_delivery_at INTEGER,
+        last_status_code INTEGER,
+        failure_count INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS webhooks_workspace_idx ON webhooks(workspace_id);
+    `,
+  },
 ];
 
 function ensureDir(filePath: string): void {
@@ -231,19 +292,13 @@ function run(): void {
   try {
     sqlite.pragma("journal_mode = WAL");
     sqlite.pragma("foreign_keys = ON");
-
     sqlite.exec(`CREATE TABLE IF NOT EXISTS __migrations (
       id TEXT PRIMARY KEY,
       applied_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     );`);
-
     const applied = new Set<string>(
-      sqlite
-        .prepare("SELECT id FROM __migrations")
-        .all()
-        .map((r) => (r as { id: string }).id),
+      sqlite.prepare("SELECT id FROM __migrations").all().map((r) => (r as { id: string }).id),
     );
-
     const insert = sqlite.prepare("INSERT INTO __migrations (id) VALUES (?)");
     for (const m of MIGRATIONS) {
       if (applied.has(m.id)) continue;

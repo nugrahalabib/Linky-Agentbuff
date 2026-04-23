@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.github
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.local
+.env.*.local
+coverage
+.vscode
+.idea
+npm-debug.log
+docs

@@ -23,17 +23,19 @@ async function unlockAction(formData: FormData) {
 
   const h = await headers();
   const ua = h.get("user-agent");
-  const target = pickTargetUrl(link, ua, h.get("x-vercel-ip-country"));
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+  const picked = pickTargetUrl(link, ua, h.get("x-vercel-ip-country"), ip);
   recordClick({
     linkId: link.id,
-    ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0",
+    ip,
     ua,
     referrer: h.get("referer"),
     country: h.get("x-vercel-ip-country"),
     region: h.get("x-vercel-ip-country-region"),
     city: h.get("x-vercel-ip-city"),
+    abVariant: picked.variant ?? null,
   });
-  redirect(target);
+  redirect(picked.url);
 }
 
 export default async function PasswordGatePage(props: {

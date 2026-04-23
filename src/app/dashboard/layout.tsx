@@ -2,9 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   BarChart3,
+  Code2,
   Download,
   Folder,
   Home,
+  Layout,
   Link as LinkIcon,
   LogOut,
   QrCode,
@@ -22,7 +24,8 @@ const primary = [
   { href: "/dashboard", label: "Beranda", icon: Home },
   { href: "/dashboard/links", label: "Link", icon: LinkIcon },
   { href: "/dashboard/analytics", label: "Analitik", icon: BarChart3 },
-  { href: "/dashboard/qr", label: "QR", icon: QrCode },
+  { href: "/dashboard/qr", label: "QR Studio", icon: QrCode },
+  { href: "/dashboard/pages", label: "Linky Pages", icon: Layout },
 ];
 
 const secondary = [
@@ -30,6 +33,7 @@ const secondary = [
   { href: "/dashboard/tags", label: "Tag", icon: Tag },
   { href: "/dashboard/utm-recipes", label: "UTM Recipes", icon: Zap },
   { href: "/dashboard/import", label: "Import CSV", icon: Upload },
+  { href: "/dashboard/developer", label: "Developer", icon: Code2 },
   { href: "/dashboard/settings", label: "Pengaturan", icon: Settings },
 ];
 
@@ -113,7 +117,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           aria-label="Navigasi utama"
           className="md:hidden sticky bottom-0 z-20 border-t border-[color:var(--border)] bg-[color:var(--card)]/95 backdrop-blur grid grid-cols-5"
         >
-          {[...primary, { href: "/dashboard/settings", label: "Lainnya", icon: Settings }].map((n) => (
+          {[
+            primary[0],
+            primary[1],
+            primary[3],
+            primary[4],
+            { href: "/dashboard/settings", label: "Lainnya", icon: Settings },
+          ].map((n) => (
             <Link
               key={n.href}
               href={n.href}
