@@ -6,11 +6,13 @@
 
 **Linky** — URL shortener dengan branded QR, analitik real-time, dan targeting cerdas. Production domain: `linky.agentbuff.id`. Written in TypeScript + Next.js 15.
 
-## Stack (MVP v0.1, current)
+## Stack (Phase 1 complete, v0.2.0)
 
 - **Framework:** Next.js 15 (App Router, React 19, Turbopack)
 - **Language:** TypeScript strict mode, `moduleResolution: bundler`
-- **DB:** SQLite (dev) via `better-sqlite3` + Drizzle ORM — swap to Postgres in prod via `DATABASE_URL`
+- **DB:** SQLite via `better-sqlite3` + Drizzle ORM (sync API). A Postgres adapter + schema + migration runner are prepared (`schema-pg.ts`, `scripts/migrate-pg.ts`) and a dedicated DB `linky` exists on the VPS Postgres (`postgres_container`, role `linky_user`). Switching runtime to Postgres requires converting all sync drizzle calls to async and is tracked as a follow-up.
+- **Cache:** `ioredis` client with graceful degraded mode (works without `REDIS_URL` set)
+- **Logging:** `pino` (`src/lib/logger.ts`)
 - **Auth:** custom session with `jose` (HS256 JWT in httpOnly cookie) + `bcryptjs` for password hashing
 - **Styling:** Tailwind CSS v4 (CSS-first config via `@theme` in `globals.css`)
 - **UI primitives:** Radix UI + local shadcn-style components in `src/components/ui/`
@@ -19,6 +21,18 @@
 - **Icons:** Lucide React
 - **Validation:** Zod (schemas in `src/lib/validators.ts`)
 - **Slug generation:** `nanoid` with Crockford-like alphabet
+- **Tests:** Node's built-in `node:test` runner via `tsx` (zero native deps, Windows App Control compatible). Vitest-style API via `src/lib/test-shim.ts`. 86 tests across 10 suites.
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) runs lint + typecheck + tests + build + security (gitleaks + npm audit) on every push/PR.
+
+## Phase 1 Foundation Upgrade — done
+
+- Postgres DB `linky` + role `linky_user` created on VPS (`148.230.100.170:5432`), credentials in vault (not in git)
+- Postgres migration script tested against VPS DB
+- Dual-dialect DB layer prepared (runtime still SQLite; migration of call sites to async is tracked for a later phase)
+- Redis client with graceful fallback — no crash if `REDIS_URL` unset
+- Logger + healthcheck `/api/health` reporting db + redis state
+- Unit tests: 86 tests covering utils, slug, hash, validators, clicks, analytics, qr, resolve-link, auth, redis degraded mode
+- GitHub Actions CI: quality (lint+typecheck+test), build (Next.js prod), security (audit+gitleaks)
 
 ## Architecture
 
