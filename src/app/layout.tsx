@@ -49,7 +49,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
-      <body className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] antialiased">
+      <body
+        suppressHydrationWarning
+        className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] antialiased"
+      >
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
