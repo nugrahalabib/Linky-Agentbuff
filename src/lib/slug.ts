@@ -1,6 +1,6 @@
 import { customAlphabet } from "nanoid";
 
-const ALPHABET = "23456789abcdefghijkmnpqrstuvwxyz";
+const ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
 
 export const generateSlug = customAlphabet(ALPHABET, 7);
 

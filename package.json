@@ -14,7 +14,9 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "postinstall": "tsx scripts/migrate.ts || echo 'Migrations deferred'"
+    "postinstall": "tsx scripts/migrate.ts || echo 'Migrations deferred'",
+    "test": "node scripts/run-tests.mjs",
+    "test:watch": "tsx --test --watch src/lib/**/*.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.7",
@@ -30,10 +32,13 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.44.6",
+    "ioredis": "^5.10.1",
     "jose": "^6.1.0",
     "lucide-react": "^0.544.0",
     "nanoid": "^5.1.5",
     "next": "15.5.4",
+    "pino": "^10.3.1",
+    "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
@@ -43,6 +48,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.4",
     "@types/bcryptjs": "^3.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.15.3",
@@ -54,7 +60,6 @@
     "eslint": "^9.25.1",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4.1.4",
-    "@tailwindcss/postcss": "^4.1.4",
     "tsx": "^4.20.6",
     "typescript": "^5.8.3"
   },
