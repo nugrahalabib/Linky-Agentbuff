@@ -7,6 +7,7 @@ import { getSessionUser, ensureWorkspace } from "@/lib/auth";
 import { generateSlug, isValidSlug } from "@/lib/slug";
 import { shortenAnonSchema } from "@/lib/validators";
 import { getFaviconUrl, hostOf, isValidUrl, normalizeUrl } from "@/lib/utils";
+import { checkUrlSafety } from "@/lib/safe-browsing";
 
 export async function POST(req: Request) {
   const ctx = await getSessionUser();
@@ -34,6 +35,18 @@ export async function POST(req: Request) {
   const destinationUrl = normalizeUrl(parsed.data.destinationUrl);
   if (!isValidUrl(destinationUrl)) {
     return NextResponse.json({ error: "URL tujuan tidak valid." }, { status: 400 });
+  }
+
+  // Safe-browsing check
+  const safety = await checkUrlSafety(destinationUrl);
+  if (safety.verdict === "malicious") {
+    return NextResponse.json(
+      {
+        error: "URL ini terdeteksi sebagai berbahaya (phishing/malware).",
+        threats: safety.threatTypes,
+      },
+      { status: 422 },
+    );
   }
 
   const workspace = await ensureWorkspace(ctx.user.id);

@@ -8,6 +8,7 @@ import { authenticateApiKey } from "@/lib/api-auth";
 import { generateSlug, isValidSlug } from "@/lib/slug";
 import { createLinkSchema } from "@/lib/validators";
 import { getFaviconUrl, hostOf, isValidUrl, normalizeUrl } from "@/lib/utils";
+import { checkUrlSafety } from "@/lib/safe-browsing";
 
 export async function GET(req: Request) {
   const auth = await authenticateApiKey(req);
@@ -41,6 +42,14 @@ export async function POST(req: Request) {
 
   const destinationUrl = normalizeUrl(parsed.data.destinationUrl);
   if (!isValidUrl(destinationUrl)) return NextResponse.json({ error: "Destination URL invalid" }, { status: 400 });
+
+  const safety = await checkUrlSafety(destinationUrl);
+  if (safety.verdict === "malicious") {
+    return NextResponse.json(
+      { error: "URL flagged as unsafe", threats: safety.threatTypes },
+      { status: 422 },
+    );
+  }
 
   let slug = parsed.data.customSlug?.trim() || generateSlug();
   if (parsed.data.customSlug) {
