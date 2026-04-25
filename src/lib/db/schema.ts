@@ -19,10 +19,65 @@ export const users = sqliteTable(
     name: text("name"),
     emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
     locale: text("locale").notNull().default("id"),
+    activeWorkspaceId: text("active_workspace_id"),
     ...timestamps,
   },
   (t) => [uniqueIndex("users_email_idx").on(t.email)],
 );
+
+export const workspaceMembers = sqliteTable(
+  "workspace_members",
+  {
+    workspaceId: text("workspace_id").notNull(),
+    userId: text("user_id").notNull(),
+    role: text("role", { enum: ["owner", "admin", "editor", "viewer"] }).notNull().default("editor"),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [index("wsm_user_idx").on(t.userId)],
+);
+
+export const workspaceInvitations = sqliteTable(
+  "workspace_invitations",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id").notNull(),
+    email: text("email").notNull(),
+    role: text("role", { enum: ["owner", "admin", "editor", "viewer"] }).notNull().default("editor"),
+    token: text("token").notNull(),
+    invitedBy: text("invited_by"),
+    acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
+    acceptedBy: text("accepted_by"),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [
+    uniqueIndex("ws_invite_token_idx").on(t.token),
+    index("ws_invite_workspace_idx").on(t.workspaceId),
+  ],
+);
+
+export const safeBrowsingCache = sqliteTable(
+  "safe_browsing_cache",
+  {
+    urlHash: text("url_hash").primaryKey(),
+    verdict: text("verdict", { enum: ["safe", "suspicious", "malicious"] }).notNull(),
+    threatTypes: text("threat_types"),
+    checkedAt: integer("checked_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [index("sbc_expires_idx").on(t.expiresAt)],
+);
+
+export type WorkspaceRole = "owner" | "admin" | "editor" | "viewer";
+export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
+export type WorkspaceInvitation = typeof workspaceInvitations.$inferSelect;
+export type SafeBrowsingCache = typeof safeBrowsingCache.$inferSelect;
 
 export const sessions = sqliteTable(
   "sessions",

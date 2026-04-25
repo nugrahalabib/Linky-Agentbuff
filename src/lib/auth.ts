@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { sessions, users, workspaces, type Session, type User } from "@/lib/db/schema";
+import { sessions, users, workspaceMembers, workspaces, type Session, type User } from "@/lib/db/schema";
+import { getActiveWorkspace as resolveActiveWorkspace } from "@/lib/workspace";
 
 const SESSION_COOKIE = "linky_session";
 const SESSION_DAYS = 30;
@@ -95,11 +96,19 @@ export async function getDefaultWorkspace(userId: string) {
   return db.select().from(workspaces).where(eq(workspaces.ownerId, userId)).get() ?? null;
 }
 
-export async function ensureWorkspace(userId: string, name = "Pribadi") {
-  const existing = await getDefaultWorkspace(userId);
-  if (existing) return existing;
-  const id = nanoid(12);
-  const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${nanoid(4)}`;
-  db.insert(workspaces).values({ id, slug, name, ownerId: userId, plan: "free" }).run();
-  return db.select().from(workspaces).where(eq(workspaces.id, id)).get()!;
+/**
+ * Returns the user's ACTIVE workspace. Auto-creates personal workspace + owner
+ * membership for brand-new users. Use `getSessionUserWithWorkspace` for the
+ * full context (user + workspace + role).
+ */
+export async function ensureWorkspace(userId: string, _name = "Pribadi") {
+  const r = await resolveActiveWorkspace(userId);
+  return r.workspace;
+}
+
+export async function getSessionUserWithWorkspace() {
+  const ctx = await getSessionUser();
+  if (!ctx) return null;
+  const r = await resolveActiveWorkspace(ctx.user.id);
+  return { ...ctx, workspace: r.workspace, role: r.role };
 }

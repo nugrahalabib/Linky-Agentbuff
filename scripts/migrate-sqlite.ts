@@ -278,6 +278,53 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS webhooks_workspace_idx ON webhooks(workspace_id);
     `,
   },
+  {
+    id: "0006_workspace_members",
+    sql: `
+      CREATE TABLE IF NOT EXISTS workspace_members (
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role TEXT NOT NULL DEFAULT 'editor',
+        joined_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+        PRIMARY KEY (workspace_id, user_id)
+      );
+      CREATE INDEX IF NOT EXISTS wsm_user_idx ON workspace_members(user_id);
+
+      CREATE TABLE IF NOT EXISTS workspace_invitations (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        email TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'editor',
+        token TEXT NOT NULL,
+        invited_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+        accepted_at INTEGER,
+        accepted_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS ws_invite_token_idx ON workspace_invitations(token);
+      CREATE INDEX IF NOT EXISTS ws_invite_workspace_idx ON workspace_invitations(workspace_id);
+    `,
+  },
+  {
+    id: "0007_active_workspace",
+    sql: `
+      ALTER TABLE users ADD COLUMN active_workspace_id TEXT REFERENCES workspaces(id) ON DELETE SET NULL;
+    `,
+  },
+  {
+    id: "0008_safe_browsing_cache",
+    sql: `
+      CREATE TABLE IF NOT EXISTS safe_browsing_cache (
+        url_hash TEXT PRIMARY KEY,
+        verdict TEXT NOT NULL,
+        threat_types TEXT,
+        checked_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+        expires_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS sbc_expires_idx ON safe_browsing_cache(expires_at);
+    `,
+  },
 ];
 
 function ensureDir(filePath: string): void {
