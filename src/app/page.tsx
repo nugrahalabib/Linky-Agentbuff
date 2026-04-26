@@ -268,31 +268,32 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* ── PHONE: Linky Page — substantial iPhone, balanced with laptop ── */}
+                {/* ── PHONE: Linky Page — clean, minimal, no giant notch ── */}
                 <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[300px]">
-                    {/* Outer bezel — thicker, more present */}
-                    <div className="relative rounded-[44px] bg-zinc-900 p-3 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
-                      {/* Dynamic Island notch */}
-                      <div className="absolute left-1/2 top-5 -translate-x-1/2 z-10 h-[26px] w-[88px] rounded-full bg-zinc-950" />
-                      {/* Screen */}
+                  <div className="w-full max-w-[280px]">
+                    {/* Phone bezel: clean dark frame, uniform 8px */}
+                    <div className="rounded-[36px] bg-zinc-900 p-2 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
+                      {/* Screen — content fills naturally with proper padding */}
                       <div
-                        className="rounded-[32px] overflow-hidden"
+                        className="rounded-[28px] overflow-hidden relative"
                         style={{
-                          background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 50%,#06B6D4 100%)",
+                          background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 55%,#06B6D4 100%)",
                           color: "#fff",
                         }}
                       >
-                        {/* Status bar spacer */}
-                        <div className="h-14" />
-                        {/* Content */}
-                        <div className="px-6 pb-6 text-center">
-                          <div className="mx-auto h-20 w-20 rounded-full bg-white/20 backdrop-blur ring-2 ring-white/30 flex items-center justify-center">
-                            <span className="text-3xl">✨</span>
+                        {/* Tiny notch pill — proportional Dynamic Island */}
+                        <div className="absolute left-1/2 top-2 -translate-x-1/2 h-[14px] w-[60px] rounded-full bg-zinc-950/90 z-10" />
+
+                        {/* Content area */}
+                        <div className="pt-8 px-5 pb-5 text-center">
+                          {/* Avatar — solid backdrop, not transparent ghost */}
+                          <div className="mx-auto h-16 w-16 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg">
+                            <span className="text-2xl">✨</span>
                           </div>
-                          <div className="mt-3 font-bold text-base text-white">@nugra</div>
-                          <div className="text-xs text-white/85">Creator · Developer</div>
-                          <div className="mt-5 space-y-2.5">
+                          <div className="mt-2.5 font-bold text-sm text-white">@nugra</div>
+                          <div className="text-[11px] text-white/85">Creator · Developer</div>
+
+                          <div className="mt-3 space-y-1.5">
                             {[
                               { label: "YouTube", emoji: "▶️" },
                               { label: "TikTok", emoji: "🎵" },
@@ -301,17 +302,18 @@ export default function HomePage() {
                             ].map((l) => (
                               <div
                                 key={l.label}
-                                className="rounded-full bg-white px-4 py-2.5 text-sm font-semibold shadow-sm flex items-center justify-center gap-2"
+                                className="rounded-xl bg-white px-3 py-1.5 text-[11px] font-semibold shadow-sm flex items-center justify-center gap-1.5"
                                 style={{ color: "#18181B" }}
                               >
-                                <span className="text-base">{l.emoji}</span>
+                                <span className="text-xs">{l.emoji}</span>
                                 <span>{l.label}</span>
                               </div>
                             ))}
                           </div>
-                          <div className="mt-5 text-[10px] text-white/70">Powered by Linky</div>
-                          {/* Home indicator bar */}
-                          <div className="mx-auto mt-4 h-1 w-24 rounded-full bg-white/40" />
+
+                          <div className="mt-3 text-[8px] text-white/70 uppercase tracking-wider">
+                            Powered by Linky
+                          </div>
                         </div>
                       </div>
                     </div>
