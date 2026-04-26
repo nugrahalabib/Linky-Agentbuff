@@ -518,7 +518,7 @@ export default function HomePage() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href="/@nugra" prefetch={false} target="_blank">
+                <Link href="/@nugrahalabib" prefetch={false} target="_blank">
                   Lihat contoh live
                 </Link>
               </Button>
