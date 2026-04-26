@@ -150,34 +150,34 @@ export default function HomePage() {
                 className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-1.5 text-xs font-medium text-[color:var(--muted-foreground)] shadow-sm hover:border-[color:var(--primary)]/40 transition-colors"
               >
                 <Sparkles className="h-3 w-3 text-[color:var(--primary)]" />
-                Baru · A/B testing + Linky Pages + REST API
+                Persingkat Link & Bikin Bio Keren
                 <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
 
             <h1 className="text-center text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05]">
-              Satu link. <br />
-              <span className="gradient-text">Dua kekuatan.</span>
+              Kendalikan Semua Link Kamu <br />
+              di <span className="gradient-text">Satu Tempat.</span>
             </h1>
 
             <p className="mt-6 text-center text-lg sm:text-xl text-[color:var(--muted-foreground)] max-w-2xl mx-auto leading-relaxed">
-              Pendekkan URL dengan analitik mendalam. Bangun halaman link-in-bio yang cantik.
-              <br className="hidden sm:block" /> Semuanya gratis, dalam satu dashboard.
+              Buat link custom mu, pantau statistik pengunjung secara detail.
+              <br className="hidden sm:block" /> Semuanya 100% gratis, gampang dipakai, dan terpantau dalam satu dashboard.
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button asChild size="xl" variant="gradient" className="w-full sm:w-auto">
                 <Link href="/signup">
-                  Mulai gratis — 30 detik
+                  Mulai Gratis (Cuma 30 detik)
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild size="xl" variant="outline" className="w-full sm:w-auto">
-                <Link href="#products">Lihat kedua produk</Link>
+                <Link href="#products">Jelajahi Fitur</Link>
               </Button>
             </div>
             <p className="mt-4 text-center text-xs text-[color:var(--muted-foreground)]">
-              Tanpa kartu kredit · Open-source MIT · Self-hostable
+              100% Gratis · Open-source MIT · Self-hostable
             </p>
 
             {/* Dashboard mockup — single, centered */}
