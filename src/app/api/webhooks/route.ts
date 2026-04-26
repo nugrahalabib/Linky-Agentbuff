@@ -9,7 +9,7 @@ import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 
 const createSchema = z.object({
   url: z.string().url(),
-  events: z.array(z.enum(["link.clicked", "link.created", "link.deleted"])).min(1),
+  events: z.array(z.enum(["link.clicked", "link.created", "link.updated", "link.deleted"])).min(1),
 });
 
 export async function GET() {

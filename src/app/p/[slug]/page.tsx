@@ -34,6 +34,9 @@ async function unlockAction(formData: FormData) {
     region: h.get("x-vercel-ip-country-region"),
     city: h.get("x-vercel-ip-city"),
     abVariant: picked.variant ?? null,
+    workspaceId: link.workspaceId,
+    slug: link.slug,
+    destinationUrl: picked.url,
   });
   redirect(picked.url);
 }

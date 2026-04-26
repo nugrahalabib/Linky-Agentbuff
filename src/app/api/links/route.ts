@@ -9,6 +9,7 @@ import { generateSlug, isValidSlug } from "@/lib/slug";
 import { createLinkSchema } from "@/lib/validators";
 import { getFaviconUrl, hostOf, isValidUrl, normalizeUrl } from "@/lib/utils";
 import { checkUrlSafety } from "@/lib/safe-browsing";
+import { fireWebhooks } from "@/lib/webhooks";
 
 export async function GET(req: Request) {
   const ctx = await getSessionUser();
@@ -202,6 +203,16 @@ export async function POST(req: Request) {
       .all()
       .map((t) => t.id);
     for (const tagId of valid) db.insert(linkTags).values({ linkId: id, tagId }).run();
+  }
+
+  if (created) {
+    fireWebhooks(workspace.id, "link.created", {
+      link_id: created.id,
+      slug: created.slug,
+      destination_url: created.destinationUrl,
+      title: created.title,
+      created_by: created.createdBy,
+    });
   }
 
   return NextResponse.json({ link: created });

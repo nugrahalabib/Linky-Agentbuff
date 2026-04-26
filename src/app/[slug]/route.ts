@@ -47,6 +47,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
         region: req.headers.get("x-vercel-ip-country-region") ?? null,
         city: req.headers.get("x-vercel-ip-city") ?? null,
         abVariant: picked.variant ?? null,
+        workspaceId: link.workspaceId,
+        slug: link.slug,
+        destinationUrl: target,
       });
     }
     return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "private, no-store" } });
@@ -62,6 +65,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
       region: req.headers.get("x-vercel-ip-country-region") ?? null,
       city: req.headers.get("x-vercel-ip-city") ?? null,
       abVariant: picked.variant ?? null,
+      workspaceId: link.workspaceId,
+      slug: link.slug,
+      destinationUrl: target,
     });
   }
 

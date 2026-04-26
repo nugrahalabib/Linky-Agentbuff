@@ -1,51 +1,52 @@
-import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { links } from "@/lib/db/schema";
-import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 import { updateLinkSchema } from "@/lib/validators";
 import { isValidUrl, normalizeUrl } from "@/lib/utils";
+import { apiError, apiOk, apiOptions, readJson, withApiAuth, type AuthedRequest } from "@/lib/api-helpers";
 import { fireWebhooks } from "@/lib/webhooks";
+import { serializeLink } from "@/lib/api-serializers";
 
-async function loadOwned(id: string) {
-  const ctx = await getSessionUser();
-  if (!ctx) return { err: NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 }) } as const;
-  const workspace = await ensureWorkspace(ctx.user.id);
-  const link = db.select().from(links).where(and(eq(links.id, id), eq(links.workspaceId, workspace.id))).get();
-  if (!link) return { err: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) } as const;
-  return { link, workspace, user: ctx.user } as const;
+export async function OPTIONS() {
+  return apiOptions();
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function loadOwned(id: string, auth: AuthedRequest) {
+  const link = db
+    .select()
+    .from(links)
+    .where(and(eq(links.id, id), eq(links.workspaceId, auth.workspace.id)))
+    .get();
+  return link ?? null;
+}
+
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const a = await withApiAuth(req);
+  if (!a.ok) return a.res;
   const { id } = await params;
-  const r = await loadOwned(id);
-  if ("err" in r) return r.err;
-  return NextResponse.json({ link: r.link });
+  const link = await loadOwned(id, a.auth);
+  if (!link) return apiError("not_found", "Link tidak ditemukan.", 404, a.auth.rateHeaders);
+  return apiOk({ data: serializeLink(link) }, { extraHeaders: a.auth.rateHeaders });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const a = await withApiAuth(req);
+  if (!a.ok) return a.res;
   const { id } = await params;
-  const r = await loadOwned(id);
-  if ("err" in r) return r.err;
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Body JSON tidak valid." }, { status: 400 });
-  }
-  const parsed = updateLinkSchema.safeParse(body);
+  const link = await loadOwned(id, a.auth);
+  if (!link) return apiError("not_found", "Link tidak ditemukan.", 404, a.auth.rateHeaders);
+  const j = await readJson<unknown>(req);
+  if (!j.ok) return j.res;
+  const parsed = updateLinkSchema.safeParse(j.data);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Data tidak valid." }, { status: 400 });
+    return apiError("validation_error", parsed.error.issues[0]?.message ?? "Invalid input", 400, a.auth.rateHeaders);
   }
   const data = parsed.data;
-
   const patch: Record<string, unknown> = { updatedAt: new Date() };
-
   if (typeof data.destinationUrl === "string") {
     const u = normalizeUrl(data.destinationUrl);
-    if (!isValidUrl(u)) return NextResponse.json({ error: "URL tujuan tidak valid." }, { status: 400 });
+    if (!isValidUrl(u)) return apiError("invalid_url", "destinationUrl invalid.", 400, a.auth.rateHeaders);
     patch.destinationUrl = u;
   }
   if (typeof data.title === "string") patch.title = data.title;
@@ -64,7 +65,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof data.ogTitle === "string") patch.ogTitle = data.ogTitle || null;
   if (typeof data.ogDescription === "string") patch.ogDescription = data.ogDescription || null;
   if (typeof data.ogImage === "string") patch.ogImage = data.ogImage || null;
-
   if (data.utmSource || data.utmMedium || data.utmCampaign || data.utmTerm || data.utmContent) {
     const utm: Record<string, string> = {};
     if (data.utmSource) utm.utm_source = data.utmSource;
@@ -74,27 +74,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (data.utmContent) utm.utm_content = data.utmContent;
     patch.utmParams = utm;
   }
-
   db.update(links).set(patch).where(eq(links.id, id)).run();
   const updated = db.select().from(links).where(eq(links.id, id)).get();
-  if (updated && r.workspace.id) {
-    fireWebhooks(r.workspace.id, "link.updated", {
+  if (updated) {
+    fireWebhooks(a.auth.workspace.id, "link.updated", {
       link_id: updated.id,
       slug: updated.slug,
       destination_url: updated.destinationUrl,
-      title: updated.title,
       archived: updated.archived,
     });
   }
-  return NextResponse.json({ link: updated });
+  return apiOk({ data: updated ? serializeLink(updated) : null }, { extraHeaders: a.auth.rateHeaders });
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const a = await withApiAuth(req);
+  if (!a.ok) return a.res;
   const { id } = await params;
-  const r = await loadOwned(id);
-  if ("err" in r) return r.err;
-  const snapshot = { link_id: r.link.id, slug: r.link.slug, destination_url: r.link.destinationUrl };
+  const link = await loadOwned(id, a.auth);
+  if (!link) return apiError("not_found", "Link tidak ditemukan.", 404, a.auth.rateHeaders);
+  const snapshot = { link_id: link.id, slug: link.slug, destination_url: link.destinationUrl };
   db.delete(links).where(eq(links.id, id)).run();
-  fireWebhooks(r.workspace.id, "link.deleted", snapshot);
-  return NextResponse.json({ ok: true });
+  fireWebhooks(a.auth.workspace.id, "link.deleted", snapshot);
+  return apiOk({ ok: true }, { extraHeaders: a.auth.rateHeaders });
 }

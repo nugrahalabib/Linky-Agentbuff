@@ -12,7 +12,10 @@ export async function SiteHeader() {
         <Link href="/" aria-label="Linky home" className="flex items-center">
           <Logo />
         </Link>
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-1 sm:gap-2">
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link href="/docs/api">API Docs</Link>
+          </Button>
           {signedIn ? (
             <>
               <Button asChild variant="outline" size="sm">

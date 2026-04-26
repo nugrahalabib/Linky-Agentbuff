@@ -403,6 +403,27 @@ export const webhooks = sqliteTable(
   (t) => [index("webhooks_workspace_idx").on(t.workspaceId)],
 );
 
+export const webhookDeliveries = sqliteTable(
+  "webhook_deliveries",
+  {
+    id: text("id").primaryKey(),
+    webhookId: text("webhook_id")
+      .notNull()
+      .references(() => webhooks.id, { onDelete: "cascade" }),
+    event: text("event").notNull(),
+    statusCode: integer("status_code"),
+    success: integer("success", { mode: "boolean" }).notNull().default(false),
+    durationMs: integer("duration_ms"),
+    error: text("error"),
+    requestBody: text("request_body"),
+    responseSnippet: text("response_snippet"),
+    ts: integer("ts", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [index("whd_webhook_idx").on(t.webhookId, t.ts)],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Link = typeof links.$inferSelect;
@@ -418,5 +439,6 @@ export type QrCode = typeof qrCodes.$inferSelect;
 export type UtmRecipe = typeof utmRecipes.$inferSelect;
 export type LinkyPage = typeof linkyPages.$inferSelect;
 export type Webhook = typeof webhooks.$inferSelect;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type AbuseReport = typeof abuseReports.$inferSelect;
