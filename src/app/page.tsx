@@ -99,35 +99,35 @@ const THEMES = [
 const USE_CASES = [
   {
     id: "creator",
-    label: "Creator",
+    label: "Konten Kreator",
     emoji: "✨",
-    title: "Satu bio, semua contentmu",
-    desc: "Kumpulkan YouTube, TikTok, podcast, merch, dan kolaborasi dalam satu Linky Page. Pantau tombol mana paling sering diklik.",
-    features: ["Linky Page dengan 8 block type", "Analitik per-block", "5 theme preset"],
+    title: "Satu Link untuk Pamerkan Semua Karyamu",
+    desc: "Kumpulkan link YouTube, TikTok, podcast, jualan merch, hingga info kolaborasi di satu Halaman Bio. Pantau juga tombol mana yang paling laris diklik audiensmu.",
+    features: ["Bebas susun ragam konten", "Statistik klik per tombol", "Pilihan desain kekinian"],
   },
   {
     id: "umkm",
-    label: "UMKM",
+    label: "Pemilik Bisnis & UMKM",
     emoji: "🏪",
-    title: "Katalog + WhatsApp dalam satu link",
-    desc: "Tautkan katalog Tokopedia/Shopee, chat WhatsApp, lokasi Google Maps, dan promo terbaru. Share satu link di bio IG + status WA.",
-    features: ["Deep link ke app WhatsApp", "Countdown untuk flash sale", "QR code cetak offline"],
+    title: "Jualan Makin Laris Lewat Satu Link",
+    desc: "Gabungkan link toko online (Shopee/Tokopedia), tombol langsung ke chat WhatsApp, rute Google Maps, dan info promo. Tinggal pasang di bio IG atau status WA!",
+    features: ["Link langsung buka WhatsApp", "Fitur hitung mundur Flash Sale", "Bikin QR Code untuk brosur/kasir"],
   },
   {
     id: "marketer",
-    label: "Marketer",
+    label: "Digital Marketer",
     emoji: "📊",
-    title: "Campaign link dengan attribution",
-    desc: "Branded domain + UTM otomatis + A/B test varian URL. Ukur ROI tiap kampanye dengan geo/device breakdown.",
-    features: ["A/B testing sticky-hash", "UTM Recipes", "Geo rules per-negara"],
+    title: "Lacak & Optimasi Setiap Kampanye",
+    desc: "Gunakan link brand-mu sendiri, pasang UTM otomatis, dan uji performa link. Pantau hasil kampanye berdasarkan lokasi atau gadget yang dipakai audiens dengan sangat detail.",
+    features: ["Tes performa link (A/B Test)", "Generator UTM Otomatis", "Atur tujuan link per negara"],
   },
   {
     id: "developer",
-    label: "Developer",
+    label: "Developer & IT",
     emoji: "⚙️",
-    title: "Integrasi via REST API",
-    desc: "Buat API key, POST link dari backend-mu, terima webhook HMAC saat ada klik. Cocok untuk app yang butuh link dinamis.",
-    features: ["REST API v1 Bearer auth", "Webhooks signed HMAC", "CSV bulk import"],
+    title: "Integrasi Tanpa Batas dengan API",
+    desc: "Bikin API key, kelola link otomatis via backend, dan pantau klik secara real-time lewat webhook. Sempurna untuk scale-up aplikasi buatanmu.",
+    features: ["Dokumentasi REST API lengkap", "Dukungan Webhooks Real-time", "Import ribuan link via CSV"],
   },
 ];
 
@@ -476,9 +476,10 @@ export default function HomePage() {
            ═══════════════════════════════════════════════════ */}
         <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Cocok untuk siapa saja</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Satu Platform. Solusi untuk Semua.</h2>
             <p className="mt-3 text-[color:var(--muted-foreground)]">
-              Creator, UMKM, marketer, developer — Linky punya fitur khusus untuk masing-masing.
+              Apapun profesimu! Kreator, Pemilik Bisnis, Marketer, atau Developer. Linky dirancang khusus untuk
+              bikin pekerjaanmu jauh lebih mudah.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
