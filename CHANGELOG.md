@@ -5,6 +5,39 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-04-26
+
+### Added
+- **Settings page redesign — 6 functional tabs:**
+  - **Profil**: edit nama, locale (id/en). Email tetap read-only.
+  - **Keamanan**: ganti password (verify current, reject same-as-old, auto-revoke other sessions setelah ganti). Sessions list dengan device/OS/browser detection, last-seen timestamp, tombol revoke per-sesi + "Logout dari semua device lain".
+  - **Workspace**: edit nama + slug (validate unique), tampilkan domain produksi + tanggal dibuat.
+  - **Tampilan**: tema (Light/Dark/System) + density (Comfortable/Compact), persisted di localStorage.
+  - **Data & statistik**: KPI count (link/clicks/Linky Pages/API key/webhook), member-since, ekspor JSON lengkap (link + clicks + folder + tag + Linky Pages + UTM recipes).
+  - **Danger zone**: hapus semua link (konfirmasi ketik nama workspace) + hapus akun permanen (konfirmasi ketik email + password). Cascade delete via FK ON DELETE CASCADE — verifikasi: semua tabel related ter-purge.
+- **API endpoints baru:**
+  - `PATCH /api/auth/profile` (validator `updateProfileSchema`)
+  - `POST /api/auth/change-password` (validator `changePasswordSchema`, rejects same-as-old)
+  - `GET /api/auth/sessions` + `DELETE /api/auth/sessions/[id]` + `POST /api/auth/sessions/revoke-others`
+  - `PATCH /api/workspace` (validator `updateWorkspaceSchema` dengan slug uniqueness check)
+  - `GET /api/account/stats`
+  - `GET /api/account/export` (JSON download dengan Content-Disposition)
+  - `POST /api/account/wipe-links` (memerlukan ketik nama workspace)
+  - `DELETE /api/account` (validator `deleteAccountSchema` — email + password)
+- **Session metadata** — sessions table tambah `userAgent`, `ipHash`, `lastSeenAt`. `createSession` auto-populate dari request headers. `getSessionUser` update `lastSeenAt` setiap request.
+
+### Migrations
+- `0011_session_metadata` — ALTER sessions ADD COLUMN user_agent, ip_hash, last_seen_at.
+
+### Verified end-to-end
+- Auth gate: 9/9 endpoint return 401 tanpa session.
+- Happy path: profile update, workspace rename, stats, export download semua sukses.
+- Password change: wrong current rejected, same-as-old rejected, valid sukses → login dengan password baru works + login lama gagal.
+- Sessions: cannot revoke current session (proper UX), revoke-others kills others & keeps current.
+- Wipe links: wrong confirm rejected, correct confirm hapus 3 link → stats links 0.
+- Delete account: wrong password/email rejected → real delete cascade-purges users + workspaces + sessions + links (verified all 0 in DB).
+- 94/94 tests pass · TypeScript zero error · production build sukses.
+
 ## [0.5.1] - 2026-04-26
 
 ### Removed

@@ -13,6 +13,36 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const updateProfileSchema = z.object({
+  name: z.string().max(100).optional(),
+  locale: z.enum(["id", "en"]).optional(),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Kata sandi saat ini wajib diisi"),
+    newPassword: z.string().min(8, "Minimal 8 karakter").max(200),
+  })
+  .refine((d) => d.currentPassword !== d.newPassword, {
+    message: "Kata sandi baru harus berbeda dari yang lama.",
+    path: ["newPassword"],
+  });
+
+export const updateWorkspaceSchema = z.object({
+  name: z.string().min(1, "Nama tidak boleh kosong").max(80).optional(),
+  slug: z
+    .string()
+    .min(3, "Min 3 karakter")
+    .max(40, "Max 40 karakter")
+    .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, "Hanya huruf kecil, angka, dan tanda minus.")
+    .optional(),
+});
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1),
+  confirmEmail: z.string().email(),
+});
+
 export const shortenAnonSchema = z.object({
   destinationUrl: z.string().min(1).max(2000),
   customSlug: z.string().max(50).optional(),

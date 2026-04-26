@@ -351,6 +351,14 @@ const MIGRATIONS = [
       ALTER TABLE users DROP COLUMN active_workspace_id;
     `,
   },
+  {
+    id: "0011_session_metadata",
+    sql: `
+      ALTER TABLE sessions ADD COLUMN user_agent TEXT;
+      ALTER TABLE sessions ADD COLUMN ip_hash TEXT;
+      ALTER TABLE sessions ADD COLUMN last_seen_at INTEGER;
+    `,
+  },
 ];
 
 function ensureDir(filePath: string): void {

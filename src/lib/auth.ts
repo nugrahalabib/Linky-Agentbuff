@@ -1,11 +1,12 @@
 import { eq } from "drizzle-orm";
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { sessions, users, workspaces, type Session, type User } from "@/lib/db/schema";
 import { getActiveWorkspace as resolveActiveWorkspace } from "@/lib/workspace";
+import { hashIp } from "@/lib/hash";
 
 const SESSION_COOKIE = "linky_session";
 const SESSION_DAYS = 30;
@@ -37,7 +38,23 @@ async function signSessionToken(sessionId: string, userId: string, expSec: numbe
 export async function createSession(userId: string): Promise<string> {
   const sessionId = nanoid(32);
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  db.insert(sessions).values({ id: sessionId, userId, expiresAt }).run();
+  let userAgent: string | null = null;
+  let ipHash: string | null = null;
+  try {
+    const h = await headers();
+    userAgent = (h.get("user-agent") ?? "").slice(0, 250) || null;
+    const ip =
+      h.get("cf-connecting-ip") ??
+      h.get("x-real-ip") ??
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "0.0.0.0";
+    ipHash = hashIp(ip);
+  } catch {
+    /* not in request scope */
+  }
+  db.insert(sessions)
+    .values({ id: sessionId, userId, expiresAt, userAgent, ipHash, lastSeenAt: new Date() })
+    .run();
   const token = await signSessionToken(sessionId, userId, Math.floor(expiresAt.getTime() / 1000));
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
@@ -80,6 +97,11 @@ export async function getSessionUser(): Promise<{ user: User; session: Session }
     }
     const user = db.select().from(users).where(eq(users.id, session.userId)).get();
     if (!user) return null;
+    try {
+      db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, sid)).run();
+    } catch {
+      /* non-fatal */
+    }
     return { user, session };
   } catch {
     return null;
