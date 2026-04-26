@@ -3,14 +3,27 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { ArrowUpRight, BarChart2, Check, Copy, Lock, Clock } from "lucide-react";
+import { ArrowUpRight, BarChart2, Check, Copy, Lock, Clock, Folder as FolderIcon } from "lucide-react";
 import type { Link as DbLink } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { cn, formatNumber, hostOf, relativeTime, truncate } from "@/lib/utils";
 
-export function LinkListItem({ link, appUrl, compact = false }: { link: DbLink; appUrl: string; compact?: boolean }) {
+type EnrichedLink = DbLink & {
+  tags?: Array<{ id: string; name: string; color: string }>;
+  folder?: { id: string; name: string; color: string } | null;
+};
+
+export function LinkListItem({
+  link,
+  appUrl,
+  compact = false,
+}: {
+  link: EnrichedLink;
+  appUrl: string;
+  compact?: boolean;
+}) {
   const shortUrl = `${appUrl}/${link.slug}`;
   const [copied, setCopied] = useState(false);
   const { push } = useToast();
@@ -26,30 +39,47 @@ export function LinkListItem({ link, appUrl, compact = false }: { link: DbLink; 
     }
   };
 
+  const tags = link.tags ?? [];
+  const folder = link.folder;
+
   return (
     <div className={cn("flex items-center gap-3 py-3", compact && "py-2")}>
       <div className="shrink-0 h-10 w-10 rounded-[10px] bg-[color:var(--muted)] flex items-center justify-center overflow-hidden">
         {link.faviconUrl ? (
-          <Image
-            src={link.faviconUrl}
-            alt=""
-            width={24}
-            height={24}
-            className="h-6 w-6"
-            unoptimized
-          />
+          <Image src={link.faviconUrl} alt="" width={24} height={24} className="h-6 w-6" unoptimized />
         ) : (
           <ArrowUpRight className="h-5 w-5 text-[color:var(--muted-foreground)]" />
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             href={`/dashboard/links/${link.id}`}
             className="text-sm font-medium text-[color:var(--foreground)] truncate hover:underline"
           >
             {appUrl.replace(/^https?:\/\//, "")}/{link.slug}
           </Link>
+          {folder && (
+            <Link
+              href={`/dashboard/folders/${folder.id}`}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium hover:opacity-80"
+              style={{ background: `${folder.color}1f`, color: folder.color }}
+              title={`Folder: ${folder.name}`}
+            >
+              <FolderIcon className="h-2.5 w-2.5" />
+              {folder.name}
+            </Link>
+          )}
+          {tags.map((t) => (
+            <Link
+              key={t.id}
+              href={`/dashboard/tags/${t.id}`}
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white hover:opacity-80"
+              style={{ background: t.color }}
+            >
+              {t.name}
+            </Link>
+          ))}
           {link.passwordHash && (
             <Badge variant="outline" className="gap-1">
               <Lock className="h-3 w-3" />
@@ -74,14 +104,7 @@ export function LinkListItem({ link, appUrl, compact = false }: { link: DbLink; 
           <span className="font-medium tabular-nums">{formatNumber(link.clickCount)}</span>
         </div>
       </div>
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        onClick={copy}
-        aria-label="Salin link"
-        title="Salin"
-      >
+      <Button type="button" size="icon" variant="ghost" onClick={copy} aria-label="Salin link" title="Salin">
         {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
       </Button>
     </div>

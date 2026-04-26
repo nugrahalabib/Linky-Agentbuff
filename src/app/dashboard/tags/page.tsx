@@ -15,6 +15,9 @@ export default async function TagsPage() {
         <p className="text-sm text-[color:var(--muted-foreground)] mt-1">
           Label berwarna untuk mengelompokkan link lintas folder.
         </p>
+        <div className="mt-3 rounded-[10px] bg-[color:var(--primary)]/5 border border-[color:var(--primary)]/20 p-3 text-xs text-[color:var(--muted-foreground)]">
+          💡 <strong>Beda dengan folder:</strong> 1 link cuma boleh masuk 1 folder, tapi bisa punya banyak tag. Cocok untuk label seperti <code className="bg-[color:var(--muted)] px-1 rounded">promo</code>, <code className="bg-[color:var(--muted)] px-1 rounded">2026</code>, <code className="bg-[color:var(--muted)] px-1 rounded">important</code>. Klik tag di kartu link untuk filter cepat.
+        </div>
       </div>
       <TagManager initial={all} />
     </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Zap } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Info, Plus, Trash2, Zap } from "lucide-react";
 import type { UtmRecipe } from "@/lib/db/schema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,36 @@ export function UtmRecipeManager({ initial }: { initial: UtmRecipe[] }) {
 
   return (
     <div className="space-y-6">
+      {/* Explainer Card */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <div className="h-9 w-9 rounded-lg bg-[color:var(--primary)]/10 flex items-center justify-center text-[color:var(--primary)] shrink-0">
+              <Info className="h-5 w-5" />
+            </div>
+            <div className="space-y-2 text-sm">
+              <h3 className="font-semibold text-base">Apa itu UTM Recipe?</h3>
+              <p className="text-[color:var(--muted-foreground)] leading-relaxed">
+                <strong>UTM</strong> adalah parameter tambahan di URL untuk lacak dari mana pengunjungmu datang.
+                Contoh saat kamu pasang <code className="bg-[color:var(--muted)] px-1.5 py-0.5 rounded text-xs font-mono">utm_source=instagram</code>,
+                URL tujuan jadi:
+              </p>
+              <code className="block bg-[color:var(--muted)] p-2 rounded text-xs font-mono break-all">
+                https://example.com?utm_source=instagram&utm_medium=social&utm_campaign=ramadan2026
+              </code>
+              <p className="text-[color:var(--muted-foreground)] leading-relaxed">
+                Lalu Google Analytics / Meta Pixel di website tujuan baca: <em>“visitor ini dari Instagram, dari kampanye Ramadan”</em>.
+                Kamu jadi tahu campaign mana yang paling laku.
+              </p>
+              <p className="text-[color:var(--muted-foreground)] leading-relaxed">
+                <strong>Recipe</strong> = template UTM tersimpan. Sekali bikin "Facebook Ads", tinggal klik "Pakai recipe" saat
+                buat link baru — semua field UTM otomatis terisi. Hemat waktu, konsisten antar campaign.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Recipe baru</CardTitle>
@@ -138,6 +169,13 @@ export function UtmRecipeManager({ initial }: { initial: UtmRecipe[] }) {
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => remove(r.id)} aria-label="Hapus">
                     <Trash2 className="h-4 w-4 text-[color:var(--danger)]" />
+                  </Button>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button asChild size="sm" variant="gradient" className="flex-1">
+                    <Link href={`/dashboard/links/new?recipe=${r.id}`}>
+                      Pakai recipe ini <ArrowRight className="h-3 w-3" />
+                    </Link>
                   </Button>
                 </div>
               </CardContent>

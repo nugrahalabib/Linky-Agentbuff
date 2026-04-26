@@ -15,6 +15,9 @@ export default async function FoldersPage() {
         <p className="text-sm text-[color:var(--muted-foreground)] mt-1">
           Kelompokkan link ke folder warna agar mudah dikelola. Bisa bersarang 3 tingkat.
         </p>
+        <div className="mt-3 rounded-[10px] bg-[color:var(--primary)]/5 border border-[color:var(--primary)]/20 p-3 text-xs text-[color:var(--muted-foreground)]">
+          💡 <strong>Cara pakai:</strong> Buat folder di sini → saat bikin/edit link, pilih folder dari dropdown “Folder”. Klik nama folder di kartu link untuk lihat semua isinya.
+        </div>
       </div>
       <FolderManager initial={all} />
     </div>
