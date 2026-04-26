@@ -634,24 +634,24 @@ export default function HomePage() {
         <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center max-w-2xl mx-auto">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">3 langkah, siap pakai.</h2>
-            <p className="mt-3 text-[color:var(--muted-foreground)]">Tanpa setup panjang. Tanpa kartu kredit.</p>
+            <p className="mt-3 text-[color:var(--muted-foreground)]">Mulai dalam hitungan detik. Tanpa ribet!</p>
           </div>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {[
               {
                 n: "01",
-                title: "Daftar akun",
-                desc: "30 detik dengan email + kata sandi. Tidak perlu kartu, tidak ada trial.",
+                title: "Buat Akun Gratis",
+                desc: "Cukup daftar. 100% gratis selamanya, tanpa embel-embel trial.",
               },
               {
                 n: "02",
-                title: "Pilih produkmu",
-                desc: "Bikin link pendek biasa, atau bangun Linky Page di editor drag-drop.",
+                title: "Pilih Kebutuhanmu",
+                desc: "Mau perpendek link, bikin QR Code, atau buat halaman Link-in-Bio? Semua tinggal klik.",
               },
               {
                 n: "03",
-                title: "Lihat hasilnya",
-                desc: "Analitik muncul real-time begitu orang klik. Ekspor CSV kapan saja.",
+                title: "Pantau Hasilnya",
+                desc: "Bagikan link-mu dan lihat statistik kliknya bertambah secara real-time!",
               },
             ].map((s) => (
               <Card key={s.n}>
@@ -672,15 +672,15 @@ export default function HomePage() {
           <div className="relative overflow-hidden rounded-2xl p-10 sm:p-16 text-center bg-gradient-to-br from-brand-600 via-brand-700 to-accent-700 text-white shadow-2xl">
             <div className="absolute inset-0 grid-bg opacity-20" aria-hidden />
             <h2 className="relative text-3xl sm:text-4xl font-bold tracking-tight">
-              Siap memulai cerita pendekmu?
+              Siap Kendalikan Semua Link Kamu?
             </h2>
             <p className="relative mt-4 text-white/80 max-w-xl mx-auto">
-              Bikin akun 30 detik, pilih satu link atau Linky Page, lalu share ke mana saja.
+              Gabung sekarang dan nikmati semua fitur premium Linky secara gratis tanpa batasan.
             </p>
             <div className="relative mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="xl" className="bg-white text-brand-700 hover:bg-white/90 shadow-lg">
                 <Link href="/signup">
-                  Mulai gratis
+                  Buat Akun Sekarang
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -699,7 +699,8 @@ export default function HomePage() {
             <div>
               <Logo />
               <p className="mt-3 text-xs text-[color:var(--muted-foreground)] leading-relaxed">
-                URL shortener + link-in-bio gratis, open-source, untuk semua orang.
+                Platform manajemen link dan link-in-bio modern. 100% gratis, open-source, dan dirancang untuk
+                semua orang.
               </p>
             </div>
             <div>
