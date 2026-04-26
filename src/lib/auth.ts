@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { sessions, users, workspaceMembers, workspaces, type Session, type User } from "@/lib/db/schema";
+import { sessions, users, workspaces, type Session, type User } from "@/lib/db/schema";
 import { getActiveWorkspace as resolveActiveWorkspace } from "@/lib/workspace";
 
 const SESSION_COOKIE = "linky_session";
@@ -96,11 +96,6 @@ export async function getDefaultWorkspace(userId: string) {
   return db.select().from(workspaces).where(eq(workspaces.ownerId, userId)).get() ?? null;
 }
 
-/**
- * Returns the user's ACTIVE workspace. Auto-creates personal workspace + owner
- * membership for brand-new users. Use `getSessionUserWithWorkspace` for the
- * full context (user + workspace + role).
- */
 export async function ensureWorkspace(userId: string, _name = "Pribadi") {
   const r = await resolveActiveWorkspace(userId);
   return r.workspace;
@@ -110,5 +105,5 @@ export async function getSessionUserWithWorkspace() {
   const ctx = await getSessionUser();
   if (!ctx) return null;
   const r = await resolveActiveWorkspace(ctx.user.id);
-  return { ...ctx, workspace: r.workspace, role: r.role };
+  return { ...ctx, workspace: r.workspace };
 }

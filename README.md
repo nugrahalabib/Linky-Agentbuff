@@ -33,11 +33,6 @@ Production: **[linky.agentbuff.id](https://linky.agentbuff.id)**
 - ✅ URL: `linky.agentbuff.id/u/<username>`
 - ✅ Analytics terintegrasi
 
-### Multi-user workspaces
-- ✅ Roles: Owner / Admin / Editor / Viewer
-- ✅ Invitation via shareable token URL (tanpa email)
-- ✅ Switch workspace dari header
-
 ### Developer / Integration
 - ✅ **REST API v1** (`/api/v1/*`) — links CRUD, analytics, QR, /me — Bearer auth, CORS, 120 req/min rate-limit, standard error format
 - ✅ **Webhooks** — HMAC-SHA256 signed POST untuk `link.clicked` / `link.created` / `link.updated` / `link.deleted` event, dengan delivery log (50 terakhir per webhook) + tombol kirim test event dari dashboard

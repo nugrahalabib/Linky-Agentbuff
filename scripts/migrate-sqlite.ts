@@ -343,6 +343,14 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS whd_webhook_idx ON webhook_deliveries(webhook_id, ts);
     `,
   },
+  {
+    id: "0010_drop_team",
+    sql: `
+      DROP TABLE IF EXISTS workspace_invitations;
+      DROP TABLE IF EXISTS workspace_members;
+      ALTER TABLE users DROP COLUMN active_workspace_id;
+    `,
+  },
 ];
 
 function ensureDir(filePath: string): void {

@@ -1,6 +1,6 @@
 {
   "name": "linky",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Linky — Open-source, free-forever URL shortener with custom branded QR, analytics, and link-in-bio.",
   "license": "MIT",

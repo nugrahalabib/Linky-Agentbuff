@@ -19,8 +19,6 @@ import { Logo } from "@/components/brand/logo";
 import { getSessionUserWithWorkspace } from "@/lib/auth";
 import { CommandPalette } from "@/components/command-palette";
 import { SearchTrigger } from "@/components/search-trigger";
-import { WorkspaceSwitcher } from "@/components/workspace-switcher";
-import { Users } from "lucide-react";
 
 const primary = [
   { href: "/dashboard", label: "Beranda", icon: Home },
@@ -35,7 +33,6 @@ const secondary = [
   { href: "/dashboard/tags", label: "Tag", icon: Tag },
   { href: "/dashboard/utm-recipes", label: "UTM Recipes", icon: Zap },
   { href: "/dashboard/import", label: "Import CSV", icon: Upload },
-  { href: "/dashboard/team", label: "Tim", icon: Users },
   { href: "/dashboard/developer", label: "Developer", icon: Code2 },
   { href: "/dashboard/settings", label: "Pengaturan", icon: Settings },
 ];
@@ -52,7 +49,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Link>
         </div>
         <div className="px-3 pb-2 space-y-2">
-          <WorkspaceSwitcher activeId={ctx.workspace.id} activeName={ctx.workspace.name} />
           <SearchTrigger />
         </div>
         <nav className="flex-1 flex flex-col gap-1 px-3 overflow-y-auto">
