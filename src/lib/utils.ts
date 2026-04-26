@@ -11,14 +11,21 @@ export function formatNumber(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
-export function formatDate(ts: number | Date, locale = "id-ID"): string {
-  const d = typeof ts === "number" ? new Date(ts) : ts;
+function toDate(ts: number | string | Date): Date {
+  if (ts instanceof Date) return ts;
+  return new Date(ts);
+}
+
+export function formatDate(ts: number | string | Date, locale = "id-ID"): string {
+  const d = toDate(ts);
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(d);
 }
 
-export function relativeTime(ts: number | Date, locale = "id"): string {
-  const d = typeof ts === "number" ? new Date(ts) : ts;
-  const diff = (Date.now() - d.getTime()) / 1000;
+export function relativeTime(ts: number | string | Date, locale = "id"): string {
+  const d = toDate(ts);
+  const t = d.getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = (Date.now() - t) / 1000;
   const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   if (diff < 60) return rtf.format(-Math.floor(diff), "second");
   if (diff < 3600) return rtf.format(-Math.floor(diff / 60), "minute");
