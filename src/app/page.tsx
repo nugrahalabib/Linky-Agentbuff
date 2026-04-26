@@ -17,7 +17,6 @@ import {
   QrCode,
   Radio,
   Share2,
-  Smartphone,
   Sparkles,
   Target,
   TrendingUp,
