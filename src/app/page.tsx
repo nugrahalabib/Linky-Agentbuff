@@ -284,17 +284,16 @@ export default function HomePage() {
                         {/* Dynamic Island */}
                         <div className="absolute left-1/2 top-2 -translate-x-1/2 h-[18px] w-[80px] rounded-full bg-zinc-950 z-10" />
 
-                        {/* Content — BIG horizontal padding fills extra width without growing height.
-                            Vertical sizes stay compact like the 290px version */}
-                        <div className="px-24 pt-10 pb-6 text-center">
+                        {/* Content — buttons fill phone width */}
+                        <div className="px-6 pt-10 pb-6 text-center">
                           {/* Avatar — keep small */}
                           <div className="mx-auto h-16 w-16 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg">
                             <span className="text-2xl">✨</span>
                           </div>
-                          <div className="mt-2.5 font-bold text-sm text-white">@nugra</div>
+                          <div className="mt-2.5 font-bold text-sm text-white">@nugrahalabib</div>
                           <div className="text-[11px] text-white/85">Creator · Developer</div>
 
-                          {/* 4 link buttons — compact vertical, narrow horizontally via px-24 */}
+                          {/* 4 link buttons — full width */}
                           <div className="mt-5 space-y-2">
                             {[
                               { label: "YouTube", emoji: "▶️" },
@@ -304,10 +303,10 @@ export default function HomePage() {
                             ].map((l) => (
                               <div
                                 key={l.label}
-                                className="rounded-xl bg-white px-3 py-2 text-[12px] font-semibold shadow-sm flex items-center justify-center gap-1.5"
+                                className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold shadow-sm flex items-center justify-center gap-2"
                                 style={{ color: "#18181B" }}
                               >
-                                <span className="text-sm">{l.emoji}</span>
+                                <span className="text-base">{l.emoji}</span>
                                 <span>{l.label}</span>
                               </div>
                             ))}
@@ -319,9 +318,6 @@ export default function HomePage() {
                           <div className="mx-auto mt-3 h-1 w-20 rounded-full bg-white/40" />
                         </div>
                       </div>
-                    </div>
-                    <div className="text-center mt-3 text-xs text-[color:var(--muted-foreground)] font-mono">
-                      {APP_HOST}/@nugra
                     </div>
                   </div>
                 </div>
