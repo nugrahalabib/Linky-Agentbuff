@@ -48,6 +48,9 @@ export const sessions = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    userAgent: text("user_agent"),
+    ipHash: text("ip_hash"),
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp_ms" }),
     ...timestamps,
   },
   (t) => [index("sessions_user_id_idx").on(t.userId), index("sessions_expires_idx").on(t.expiresAt)],
