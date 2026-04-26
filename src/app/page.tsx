@@ -181,7 +181,7 @@ export default function HomePage() {
             </p>
 
             {/* Dual product mockup — proportional & color-balanced */}
-            <div className="mt-16 relative mx-auto max-w-7xl">
+            <div className="mt-16 relative mx-auto max-w-[1400px]">
               <div
                 className="absolute -inset-8 bg-gradient-to-r from-brand-500/15 via-accent-500/15 to-brand-500/15 rounded-[40px] blur-3xl"
                 aria-hidden
@@ -270,7 +270,7 @@ export default function HomePage() {
 
                 {/* ── PHONE: Linky Page — clean, minimal, no giant notch ── */}
                 <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[580px]">
+                  <div className="w-full max-w-[720px]">
                     {/* Phone bezel — wide horizontally, height stays compact */}
                     <div className="rounded-[44px] bg-zinc-900 p-2.5 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.4)] ring-1 ring-zinc-800">
                       {/* Screen */}
