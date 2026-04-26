@@ -402,12 +402,12 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="mt-14 grid gap-10 md:grid-cols-[1.2fr_1fr] items-center">
-              {/* Left: Block types + themes */}
-              <div className="space-y-8">
+            <div className="mt-14 grid gap-10 md:grid-cols-[1.2fr_1fr] items-start">
+              {/* Left: Block types + themes — order-2 on mobile so phone shows after intro */}
+              <div className="order-2 md:order-1">
                 <div>
                   <h3 className="font-bold text-xl mb-4">Bebas Berkreasi dengan Berbagai Pilihan Konten</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {BIO_BLOCKS.map((b) => (
                       <div
                         key={b.label}
@@ -424,13 +424,13 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="mt-16">
                   <h3 className="font-bold text-xl mb-4">Pilih Desain Instan Sesuai Gayamu</h3>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
                     {THEMES.map((t) => (
                       <div
                         key={t.name}
-                        className="rounded-[12px] overflow-hidden border border-[color:var(--border)] w-28"
+                        className="shrink-0 rounded-[12px] overflow-hidden border border-[color:var(--border)] w-28"
                       >
                         <div
                           className="aspect-[9/16] flex items-center justify-center text-sm font-bold"
@@ -443,62 +443,65 @@ export default function HomePage() {
                     ))}
                   </div>
                 </div>
+
+                {/* CTA buttons — give breathing room from grid above */}
+                <div className="mt-16 flex flex-col sm:flex-row gap-3">
+                  <Button asChild size="lg" variant="gradient">
+                    <Link href="/signup">
+                      Buat Linky Page gratis
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link href="/@nugrahalabib" prefetch={false} target="_blank">
+                      Lihat contoh live
+                    </Link>
+                  </Button>
+                </div>
               </div>
 
-              {/* Right: Phone mockup with editor highlight */}
-              <div className="relative">
-                <div
-                  className="absolute -inset-4 bg-gradient-to-r from-brand-500/20 to-accent-500/20 rounded-3xl blur-2xl"
-                  aria-hidden
-                />
-                <div className="relative mx-auto max-w-[260px]">
-                  <div className="rounded-[36px] border-[8px] border-[color:var(--foreground)] bg-[color:var(--foreground)] overflow-hidden shadow-2xl">
-                    <div className="h-5 bg-[color:var(--foreground)] flex items-center justify-center">
-                      <div className="h-1 w-14 rounded-full bg-white/40" />
-                    </div>
-                    <div
-                      className="p-5 space-y-3"
-                      style={{ background: "radial-gradient(circle at top,#F472B6,#7C3AED,#0B0D17)" }}
-                    >
-                      <div className="text-center text-white">
-                        <div className="mx-auto h-20 w-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-3xl ring-4 ring-white/30">
-                          ✨
-                        </div>
-                        <div className="mt-2 font-bold">Aurora Creator</div>
-                        <div className="text-xs opacity-75">Music · Dance · Vlog</div>
+              {/* Right: Phone mockup — sticky on desktop, follows scroll */}
+              <div className="order-1 md:order-2 md:sticky md:top-24 self-start">
+                <div className="relative">
+                  <div
+                    className="absolute -inset-4 bg-gradient-to-r from-brand-500/20 to-accent-500/20 rounded-3xl blur-2xl"
+                    aria-hidden
+                  />
+                  <div className="relative mx-auto max-w-[260px]">
+                    <div className="rounded-[36px] border-[8px] border-[color:var(--foreground)] bg-[color:var(--foreground)] overflow-hidden shadow-2xl">
+                      <div className="h-5 bg-[color:var(--foreground)] flex items-center justify-center">
+                        <div className="h-1 w-14 rounded-full bg-white/40" />
                       </div>
-                      {["🎵 Single Baru — Spotify", "📺 YouTube Channel", "🛍️ Merch Store", "💌 Contact"].map(
-                        (l) => (
-                          <div
-                            key={l}
-                            className="rounded-lg bg-white/15 backdrop-blur border border-white/20 px-3 py-2.5 text-xs font-semibold text-white text-center"
-                          >
-                            {l}
+                      <div
+                        className="p-5 space-y-3"
+                        style={{ background: "radial-gradient(circle at top,#F472B6,#7C3AED,#0B0D17)" }}
+                      >
+                        <div className="text-center text-white">
+                          <div className="mx-auto h-20 w-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-3xl ring-4 ring-white/30">
+                            ✨
                           </div>
-                        ),
-                      )}
-                      <div className="pt-2 text-center text-[10px] text-white/60">Dibuat dengan Linky</div>
+                          <div className="mt-2 font-bold">Aurora Creator</div>
+                          <div className="text-xs opacity-75">Music · Dance · Vlog</div>
+                        </div>
+                        {["🎵 Single Baru — Spotify", "📺 YouTube Channel", "🛍️ Merch Store", "💌 Contact"].map(
+                          (l) => (
+                            <div
+                              key={l}
+                              className="rounded-lg bg-white/15 backdrop-blur border border-white/20 px-3 py-2.5 text-xs font-semibold text-white text-center"
+                            >
+                              {l}
+                            </div>
+                          ),
+                        )}
+                        <div className="pt-2 text-center text-[10px] text-white/60">Dibuat dengan Linky</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-center mt-3 text-xs text-[color:var(--muted-foreground)] font-mono">
-                    {APP_HOST}/@aurora
+                    <div className="text-center mt-3 text-sm text-gray-400 font-mono">
+                      linky.agentbuff.id/@aurora
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-12 flex flex-col sm:flex-row gap-3 justify-center">
-              <Button asChild size="lg" variant="gradient">
-                <Link href="/signup">
-                  Buat Linky Page gratis
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/@nugrahalabib" prefetch={false} target="_blank">
-                  Lihat contoh live
-                </Link>
-              </Button>
             </div>
           </div>
         </section>
