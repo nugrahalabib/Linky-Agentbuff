@@ -5,6 +5,22 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-04-26
+
+### Removed
+- **Team / Multi-user workspaces feature** — semua kode collaboration dihapus total atas permintaan user (single-user product fit lebih sederhana).
+  - Routes dihapus: `/dashboard/team`, `/api/workspace/{members,invitations,switch}`, `/api/workspace` (GET/POST list/create), `/invite/[token]`.
+  - Komponen dihapus: `TeamManager`, `WorkspaceSwitcher`, `AcceptInviteButton`.
+  - DB migration `0010_drop_team` — DROP `workspace_members`, `workspace_invitations`, ALTER `users` DROP `active_workspace_id`.
+  - Schema bersih dari `workspaceMembers`, `workspaceInvitations`, type `WorkspaceRole`.
+  - `lib/workspace.ts` disederhanakan: `getActiveWorkspace(userId)` sekarang hanya cari workspace owned-by-user dan auto-create kalau belum ada. Setiap user punya 1 workspace (Pribadi).
+  - `lib/auth.ts` `getSessionUserWithWorkspace()` tidak lagi return `role`.
+  - Sidebar dashboard + Cmd+K palette dibersihkan dari item "Tim".
+- README section "Multi-user workspaces" dihapus.
+
+### Verified
+- 94/94 unit tests pass · TypeScript zero error · Production build sukses · Zero referensi tersisa di src.
+
 ## [0.5.0] - 2026-04-26
 
 ### Added
