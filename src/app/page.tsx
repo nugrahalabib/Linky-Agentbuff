@@ -268,27 +268,27 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* ── PHONE: Linky Page — wider, fixed dark text on white buttons ── */}
+                {/* ── PHONE: Linky Page — natural phone aspect 9:19 ── */}
                 <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[280px]">
-                    <div className="rounded-[36px] border border-[color:var(--border)] bg-zinc-900 p-2.5 shadow-[0_24px_60px_-12px_rgba(6,182,212,0.3)]">
+                  <div className="w-full max-w-[240px]">
+                    <div className="rounded-[34px] border border-[color:var(--border)] bg-zinc-900 p-2 shadow-[0_24px_60px_-12px_rgba(6,182,212,0.3)]">
                       {/* Phone notch */}
-                      <div className="h-5 flex items-center justify-center">
-                        <div className="h-1 w-14 rounded-full bg-zinc-700" />
+                      <div className="h-4 flex items-center justify-center">
+                        <div className="h-0.5 w-10 rounded-full bg-zinc-700" />
                       </div>
                       <div
-                        className="rounded-[26px] p-5 text-center"
+                        className="rounded-[26px] aspect-[9/19] p-4 text-center flex flex-col"
                         style={{
                           background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 50%,#06B6D4 100%)",
                           color: "#fff",
                         }}
                       >
-                        <div className="mx-auto h-16 w-16 rounded-full bg-white/20 backdrop-blur ring-2 ring-white/30 flex items-center justify-center">
-                          <span className="text-2xl">✨</span>
+                        <div className="mx-auto h-12 w-12 rounded-full bg-white/20 backdrop-blur ring-2 ring-white/30 flex items-center justify-center">
+                          <span className="text-lg">✨</span>
                         </div>
-                        <div className="mt-3 font-bold text-base text-white">@nugra</div>
-                        <div className="text-[11px] text-white/85">Creator · Developer</div>
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-2 font-bold text-sm text-white">@nugra</div>
+                        <div className="text-[10px] text-white/85">Creator · Developer</div>
+                        <div className="mt-3 space-y-1.5 flex-1">
                           {[
                             { label: "YouTube", emoji: "▶️" },
                             { label: "TikTok", emoji: "🎵" },
@@ -297,15 +297,15 @@ export default function HomePage() {
                           ].map((l) => (
                             <div
                               key={l.label}
-                              className="rounded-xl bg-white px-3 py-2.5 text-[13px] font-semibold shadow-sm flex items-center justify-center gap-2"
+                              className="rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-semibold shadow-sm flex items-center justify-center gap-1.5"
                               style={{ color: "#18181B" }}
                             >
-                              <span className="text-base">{l.emoji}</span>
+                              <span className="text-xs">{l.emoji}</span>
                               <span>{l.label}</span>
                             </div>
                           ))}
                         </div>
-                        <div className="mt-4 text-[10px] text-white/70">Powered by Linky</div>
+                        <div className="mt-2 text-[9px] text-white/70">Powered by Linky</div>
                       </div>
                     </div>
                     <div className="text-center mt-3 text-[11px] text-[color:var(--muted-foreground)] font-mono">
