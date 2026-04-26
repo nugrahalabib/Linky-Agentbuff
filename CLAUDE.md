@@ -128,14 +128,37 @@ DB file is `linky.db` at repo root. Delete to reset.
 - Security headers set in `next.config.ts`
 - Rate limit: anonymous shortening capped by IP per-day
 
+## REST API surface (v0.5)
+
+Public REST API at `/api/v1/*` (Bearer auth, CORS open, 120 req/min/key, standard error format `{ error: { code, message }, request_id }`):
+- `GET/POST /api/v1/links` · `GET/PATCH/DELETE /api/v1/links/{id}`
+- `GET /api/v1/analytics/workspace?days=N` · `GET /api/v1/analytics/links/{id}?days=N`
+- `GET /api/v1/qr?text=...&format=svg|png`
+- `GET /api/v1/me`
+
+Helpers in `src/lib/api-helpers.ts`: `withApiAuth`, `apiOk`, `apiError`, `apiOptions`, `rateLimitCheck`. Serialization in `src/lib/api-serializers.ts` (`serializeLink` → `PublicLink` snake_case shape).
+
+Webhooks in `src/lib/webhooks.ts`: `fireWebhooks(workspaceId, event, data)` — sync DB lookup + fire-and-forget delivery. Events: `link.clicked` (from `recordClick`), `link.created` / `link.updated` / `link.deleted` (from CRUD endpoints both `/api/links/*` and `/api/v1/links/*`). Signature header `X-Linky-Signature: sha256=<hex>`. Deliveries logged to `webhook_deliveries` (last 50 per webhook, auto-prune).
+
+Public docs at `/docs/api` (`src/app/docs/api/page.tsx`) and OpenAPI 3.1 spec at `/docs/openapi.json` (`src/app/docs/openapi.json/route.ts`).
+
 ## Roadmap beyond MVP
 
-Full v1.0/v2.0 in `~/.claude/plans/aku-ingin-membuat-web-sunny-hanrahan.md`. Next:
-- Folders + tags + search
-- Branded QR with logo upload
-- UTM builder with recipes
-- Bulk CSV import
-- REST API with keys, webhooks
-- Linky Page (link-in-bio)
+Full v1.0/v2.0 in `~/.claude/plans/aku-ingin-membuat-web-sunny-hanrahan.md`.
+
+Done (v0.5):
+- Folders + tags + search ✅
+- Branded QR with logo upload ✅
+- UTM builder with recipes ✅
+- Bulk CSV import ✅
+- REST API v1 with keys + webhooks (HMAC + delivery log) ✅
+- Public API docs + OpenAPI 3.1 spec ✅
+- Linky Page (link-in-bio) ✅
+
+Next:
+- A/B testing UI (schema ready)
+- Real-time analytics (SSE)
+- Webhook retry (exp-backoff)
 - ClickHouse migration
 - Cloudflare Workers redirect layer
+- Official SDKs (TS + Python)
