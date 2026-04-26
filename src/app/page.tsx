@@ -42,26 +42,26 @@ const URL_FEATURES = [
   {
     icon: BarChart3,
     badge: "Analytics",
-    title: "Analitik real-time yang kaya",
-    desc: "Pantau klik saat terjadi. Filter by negara, device, browser, referrer, UTM. Bot auto-filter — data tetap bersih.",
-    bullets: ["6 dimensi breakdown", "Chart per-hari", "Bot filter otomatis"],
+    title: "Pantau Statistik Link secara Langsung",
+    desc: "Lihat performa link kamu detik itu juga. Cari tahu dari negara mana mereka berasal, pakai HP atau laptop, hingga dari sosmed mana mereka klik. Data dijamin akurat karena klik dari bot akan otomatis diblokir.",
+    bullets: ["Laporan detail & akurat", "Grafik harian yang mudah dibaca", "Bebas dari klik bot palsu"],
     gradient: "from-brand-500 to-brand-700",
   },
   {
     icon: QrCode,
     badge: "QR Studio",
-    title: "QR code seindah brandmu",
-    desc: "Upload logo, atur warna gradient, pilih shape modul (square/rounded/dots), tambah frame CTA. Export PNG atau SVG.",
-    bullets: ["Logo overlay", "Gradient 2-stop", "5 preset siap pakai"],
+    title: "Bikin QR Code Keren Sesuai Brand-mu",
+    desc: "Tinggalkan QR Code yang membosankan. Tambahkan logomu sendiri, sesuaikan warna, ubah bentuk polanya, dan pasang bingkai ajakan (Call-to-Action). Siap di-download dengan kualitas tinggi!",
+    bullets: ["Pasang logo sendiri", "Bebas atur warna & bentuk", "Langsung download resolusi tinggi"],
     gradient: "from-accent-500 to-brand-500",
     badgeNew: true,
   },
   {
     icon: Target,
     badge: "Targeting",
-    title: "Satu link, banyak tujuan",
-    desc: "Kirim iOS ke App Store, Android ke Play Store. Pengunjung Indonesia ke toko lokal, luar negeri ke versi global. A/B test varian untuk temukan pemenang.",
-    bullets: ["Deep link iOS + Android", "Geo rules per-negara", "A/B testing built-in"],
+    title: "Satu Link, Otomatis ke Banyak Tujuan",
+    desc: "Arahkan pengunjung ke halaman yang tepat secara otomatis! Buka App Store untuk pengguna iPhone, Play Store untuk Android, atau bedakan tujuan untuk pengunjung lokal vs internasional. Mau tes dua link sekaligus untuk cari tahu mana yang lebih laris? Bisa!",
+    bullets: ["Auto-deteksi HP (iOS/Android)", "Pembagian rute per-negara", "Fitur tes performa link bawaan"],
     gradient: "from-brand-600 to-accent-600",
     badgeNew: true,
   },
@@ -299,11 +299,10 @@ export default function HomePage() {
               <Link2 className="h-3 w-3" /> Produk 1
             </div>
             <h2 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight">
-              URL shortener dengan <span className="gradient-text">otak.</span>
+              URL shortener yang <span className="gradient-text">Lebih Pintar.</span>
             </h2>
             <p className="mt-4 text-lg text-[color:var(--muted-foreground)]">
-              Bukan sekadar pendekkan URL — setiap klik ter-track, tiap audiens ter-segment, tiap link bisa
-              punya banyak nasib.
+              Kenali siapa pengunjungmu, dan arahkan mereka ke tujuan yang paling tepat secara otomatis.
             </p>
           </div>
 
