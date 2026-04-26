@@ -186,9 +186,9 @@ export default function HomePage() {
                 className="absolute -inset-8 bg-gradient-to-r from-brand-500/15 via-accent-500/15 to-brand-500/15 rounded-[40px] blur-3xl"
                 aria-hidden
               />
-              <div className="relative grid gap-6 md:grid-cols-[1.55fr_1fr] items-center">
+              <div className="relative flex flex-col md:flex-row gap-6 items-center justify-center">
                 {/* ── LAPTOP: Dashboard — natural height, content fills properly ── */}
-                <div className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-[0_24px_60px_-12px_rgba(79,70,229,0.25)] overflow-hidden">
+                <div className="w-full md:flex-1 md:max-w-[560px] rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-[0_24px_60px_-12px_rgba(79,70,229,0.25)] overflow-hidden">
                   {/* Window chrome */}
                   <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--muted)]/60">
                     <div className="flex gap-1.5">
@@ -269,7 +269,7 @@ export default function HomePage() {
                 </div>
 
                 {/* ── PHONE: Linky Page — wider, fixed dark text on white buttons ── */}
-                <div className="flex justify-center md:justify-start">
+                <div className="flex justify-center shrink-0">
                   <div className="w-full max-w-[280px]">
                     <div className="rounded-[36px] border border-[color:var(--border)] bg-zinc-900 p-2.5 shadow-[0_24px_60px_-12px_rgba(6,182,212,0.3)]">
                       {/* Phone notch */}
