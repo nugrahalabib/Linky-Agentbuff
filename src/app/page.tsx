@@ -270,30 +270,35 @@ export default function HomePage() {
 
                 {/* ── PHONE: Linky Page — clean, minimal, no giant notch ── */}
                 <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[360px]">
+                  <div className="w-full max-w-[440px]">
                     {/* Phone bezel: clean dark frame, uniform */}
-                    <div className="rounded-[40px] bg-zinc-900 p-2.5 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
+                    <div className="rounded-[44px] bg-zinc-900 p-3 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
                       {/* Screen — content fills naturally with proper padding */}
                       <div
-                        className="rounded-[32px] overflow-hidden relative"
+                        className="rounded-[34px] overflow-hidden relative"
                         style={{
                           background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 55%,#06B6D4 100%)",
                           color: "#fff",
                         }}
                       >
                         {/* Tiny notch pill — proportional Dynamic Island */}
-                        <div className="absolute left-1/2 top-2.5 -translate-x-1/2 h-[16px] w-[72px] rounded-full bg-zinc-950/90 z-10" />
+                        <div className="absolute left-1/2 top-2.5 -translate-x-1/2 h-[16px] w-[80px] rounded-full bg-zinc-950/90 z-10" />
 
-                        {/* Content area */}
-                        <div className="pt-10 px-7 pb-6 text-center">
-                          {/* Avatar — solid backdrop, not transparent ghost */}
-                          <div className="mx-auto h-20 w-20 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg">
-                            <span className="text-3xl">✨</span>
+                        {/* Content area — 2-column compact to widen ratio */}
+                        <div className="pt-10 px-6 pb-5 text-center">
+                          {/* Header row: avatar + name horizontal */}
+                          <div className="flex items-center gap-3 justify-center">
+                            <div className="h-16 w-16 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg shrink-0">
+                              <span className="text-2xl">✨</span>
+                            </div>
+                            <div className="text-left">
+                              <div className="font-bold text-base text-white">@nugra</div>
+                              <div className="text-xs text-white/85">Creator · Developer</div>
+                            </div>
                           </div>
-                          <div className="mt-3 font-bold text-base text-white">@nugra</div>
-                          <div className="text-xs text-white/85">Creator · Developer</div>
 
-                          <div className="mt-4 space-y-2">
+                          {/* Buttons in 2x2 grid — squarer footprint */}
+                          <div className="mt-4 grid grid-cols-2 gap-2">
                             {[
                               { label: "YouTube", emoji: "▶️" },
                               { label: "TikTok", emoji: "🎵" },
@@ -302,7 +307,7 @@ export default function HomePage() {
                             ].map((l) => (
                               <div
                                 key={l.label}
-                                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold shadow-sm flex items-center justify-center gap-2"
+                                className="rounded-xl bg-white px-3 py-2 text-sm font-semibold shadow-sm flex items-center justify-center gap-1.5"
                                 style={{ color: "#18181B" }}
                               >
                                 <span className="text-base">{l.emoji}</span>
@@ -311,7 +316,7 @@ export default function HomePage() {
                             ))}
                           </div>
 
-                          <div className="mt-4 text-[9px] text-white/70 uppercase tracking-wider">
+                          <div className="mt-3 text-[9px] text-white/70 uppercase tracking-wider">
                             Powered by Linky
                           </div>
                         </div>
