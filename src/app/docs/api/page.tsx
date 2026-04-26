@@ -12,6 +12,7 @@ const BASE = `${APP_URL.replace(/\/+$/, "")}/api/v1`;
 
 const TOC = [
   { id: "intro", label: "Pengantar" },
+  { id: "get-key", label: "Cara dapat API key" },
   { id: "quickstart", label: "Quickstart 60 detik" },
   { id: "auth", label: "Authentication" },
   { id: "rate-limits", label: "Rate limits & CORS" },
@@ -21,6 +22,7 @@ const TOC = [
   { id: "qr", label: "Endpoint: QR" },
   { id: "me", label: "Endpoint: Me" },
   { id: "webhooks", label: "Webhooks" },
+  { id: "cookbook", label: "Cookbook (resep)" },
   { id: "openapi", label: "OpenAPI / SDK" },
   { id: "changelog", label: "Changelog" },
 ];
@@ -181,6 +183,51 @@ echo $resp["data"]["short_url"];`;
             <li>CORS terbuka — boleh dipanggil dari browser</li>
             <li>Rate limit 120 req/menit/key</li>
           </ul>
+
+          <H id="get-key">Cara dapat API key</H>
+          <P>
+            Akses API hanya untuk pengguna terdaftar. Tidak ada API key publik anonymous.
+            Setiap key milik satu workspace dan memiliki akses penuh ke workspace itu (semua link, analitik, dan webhook di workspace tersebut).
+          </P>
+          <ol className="space-y-2 text-sm list-decimal pl-5 text-[color:var(--muted-foreground)]">
+            <li>
+              Punya akun?{" "}
+              <Link href="/signin" className="text-[color:var(--primary)] hover:underline">
+                Masuk
+              </Link>{" "}
+              · Belum?{" "}
+              <Link href="/signup" className="text-[color:var(--primary)] hover:underline">
+                Daftar gratis
+              </Link>{" "}
+              (email + password, tanpa kartu kredit).
+            </li>
+            <li>
+              Buka{" "}
+              <Link href="/dashboard/developer" className="text-[color:var(--primary)] hover:underline">
+                Dashboard → Developer → tab API Keys
+              </Link>
+              . Default workspace dibuat otomatis saat signup.
+            </li>
+            <li>
+              Klik tombol <strong>Buat</strong>, beri nama (misal <em>Production</em>, <em>Staging</em>, <em>Personal Script</em>).
+            </li>
+            <li>
+              Halaman akan menampilkan token <code className="text-xs">lnk_xxxxxxxxxxxx...</code> sekali saja.
+              <strong> Salin dan simpan di tempat aman</strong> (password manager / env file). Token tidak bisa dilihat lagi.
+            </li>
+            <li>
+              Token disimpan sebagai SHA-256 hash di database — kalau kehilangan, kamu harus revoke key lama dan buat baru.
+            </li>
+          </ol>
+          <div className="mt-4 rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
+            <strong className="text-amber-700 dark:text-amber-400">⚠️ Aturan penting:</strong>
+            <ul className="mt-1 list-disc pl-4 space-y-0.5 text-[color:var(--muted-foreground)]">
+              <li>Jangan commit ke git — pakai env var (<code>process.env.LINKY_KEY</code>) atau secret manager.</li>
+              <li>Untuk frontend (browser), buat <em>proxy</em> di backend kamu — jangan expose key ke client-side JS.</li>
+              <li>Boleh buat banyak key (Production / Staging / per-microservice) untuk audit trail terpisah.</li>
+              <li>Revoke kapan saja dari dashboard — efek langsung berlaku, tidak ada propagasi delay.</li>
+            </ul>
+          </div>
 
           <H id="quickstart">Quickstart 60 detik</H>
           <ol className="space-y-2 text-sm list-decimal pl-5 text-[color:var(--muted-foreground)]">
@@ -494,11 +541,143 @@ def verify(raw_body: bytes, header: str, secret: str) -> bool:
           </div>
           <H3>Best practice</H3>
           <ul className="text-sm text-[color:var(--muted-foreground)] list-disc pl-5 space-y-1">
-            <li>Reply secepatnya (≤5s). Kalau perlu kerja berat, push ke queue dulu.</li>
-            <li>Idempotent: gunakan <code>delivery_id</code> sebagai key.</li>
-            <li>Reply 2xx untuk acknowledged. 5xx/timeout dihitung sebagai gagal.</li>
-            <li>Gagal beruntun? Cek tab <em>Pengiriman</em> di dashboard untuk lihat status detail.</li>
+            <li>Reply secepatnya (≤5s, hard timeout). Kalau perlu kerja berat, push ke queue dulu lalu reply 200.</li>
+            <li>Idempotent: simpan <code>delivery_id</code> di DB-mu, abaikan duplikat.</li>
+            <li>Reply 2xx = sukses (dihitung healthy). 4xx/5xx/timeout = gagal (failureCount naik).</li>
+            <li>Cek tab <em>Webhooks → ⌄ detail → Pengiriman</em> di dashboard untuk lihat 50 delivery terakhir + body response endpoint kamu.</li>
           </ul>
+
+          <H3>Retry policy & status</H3>
+          <P>
+            <strong>Saat ini:</strong> setiap event di-deliver <em>satu kali</em>, no auto-retry. Kalau gagal, status muncul di tab Pengiriman dan
+            counter <code>failureCount</code> webhook naik. Kalau gagal beruntun &gt;3, indikator status di dashboard berubah jadi <em>failing</em>.
+            Roadmap: exponential-backoff retry (1m → 5m → 30m → 2h, max 4 attempts) — tracked di GitHub.
+          </P>
+          <P>
+            Kalau endpoint kamu sedang down dan butuh re-fire event tertentu: hapus webhook, bikin lagi, atau kirim ulang via tombol{" "}
+            <em>Kirim test event</em> di dashboard untuk validasi setup.
+          </P>
+
+          <H id="cookbook">Cookbook (resep siap pakai)</H>
+          <P>Kasus nyata yang sering ditanya. Copy-paste, ganti <code>LINKY_KEY</code>, jalankan.</P>
+
+          <H3>1. Bulk-shorten dari CSV (Node.js)</H3>
+          <CodeBlock
+            lang="javascript"
+            code={`import fs from "node:fs";
+import { parse } from "csv-parse/sync";
+
+const KEY = process.env.LINKY_KEY;
+const rows = parse(fs.readFileSync("urls.csv", "utf8"), { columns: true });
+
+for (const r of rows) {
+  const res = await fetch("${BASE}/links", {
+    method: "POST",
+    headers: { Authorization: \`Bearer \${KEY}\`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      destinationUrl: r.url,
+      customSlug: r.slug || undefined,
+      title: r.title,
+      utmSource: r.source,
+      utmCampaign: r.campaign,
+    }),
+  });
+  if (res.status === 429) {
+    // Hit rate limit — wait then retry
+    await new Promise((r) => setTimeout(r, 2000));
+    continue;
+  }
+  const { data, error } = await res.json();
+  console.log(error ? \`SKIP \${r.url}: \${error.message}\` : \`OK \${data.short_url}\`);
+}`}
+          />
+
+          <H3>2. Track conversion: terima webhook saat link diklik (Express)</H3>
+          <CodeBlock
+            lang="javascript"
+            code={`import express from "express";
+import crypto from "node:crypto";
+
+const app = express();
+const SECRET = process.env.LINKY_WEBHOOK_SECRET;
+
+// CRITICAL: pakai raw body untuk verify signature
+app.post("/linky-hook", express.raw({ type: "application/json" }), (req, res) => {
+  const sig = req.headers["x-linky-signature"];
+  const expected = "sha256=" + crypto.createHmac("sha256", SECRET).update(req.body).digest("hex");
+  if (sig !== expected) return res.status(401).send("bad signature");
+
+  const event = JSON.parse(req.body.toString());
+  console.log(event.event, event.data);
+
+  // Idempotent: dedupe by delivery_id
+  if (event.event === "link.clicked") {
+    // Track conversion in your analytics
+    saveClick(event.data.link_id, event.data.country, event.data.device);
+  }
+  res.status(200).send("ok");
+});
+
+app.listen(3000);`}
+          />
+
+          <H3>3. Generate QR untuk semua link aktif (Python)</H3>
+          <CodeBlock
+            lang="python"
+            code={`import os, requests, pathlib
+
+KEY = os.environ["LINKY_KEY"]
+H = {"Authorization": f"Bearer {KEY}"}
+out = pathlib.Path("qr-export"); out.mkdir(exist_ok=True)
+
+links = requests.get("${BASE}/links?limit=200", headers=H).json()["data"]
+for l in links:
+    qr = requests.get(
+        "${BASE}/qr",
+        headers=H,
+        params={"text": l["short_url"], "format": "png", "size": 1024},
+    )
+    (out / f'{l["slug"]}.png').write_bytes(qr.content)
+    print(f'wrote {l["slug"]}.png')`}
+          />
+
+          <H3>4. Daily digest report (Node.js cron)</H3>
+          <CodeBlock
+            lang="javascript"
+            code={`// Run daily via cron / GitHub Actions / Vercel cron
+const KEY = process.env.LINKY_KEY;
+const stats = await (await fetch("${BASE}/analytics/workspace?days=1", {
+  headers: { Authorization: \`Bearer \${KEY}\` },
+})).json();
+
+const slack = await fetch(process.env.SLACK_WEBHOOK_URL, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    text: \`📊 Linky kemarin: \${stats.data.totalClicks} klik dari \${stats.data.uniqueVisitors} pengunjung. Top negara: \${stats.data.topCountries[0]?.country}.\`,
+  }),
+});`}
+          />
+
+          <H3>5. Update destinasi semua link kampanye (PATCH bulk)</H3>
+          <CodeBlock
+            lang="javascript"
+            code={`const KEY = process.env.LINKY_KEY;
+const links = (await (await fetch("${BASE}/links?limit=200", {
+  headers: { Authorization: \`Bearer \${KEY}\` },
+})).json()).data;
+
+// Filter: semua link yang title-nya mengandung "april"
+const target = links.filter((l) => l.title?.toLowerCase().includes("april"));
+
+for (const l of target) {
+  await fetch(\`${BASE}/links/\${l.id}\`, {
+    method: "PATCH",
+    headers: { Authorization: \`Bearer \${KEY}\`, "Content-Type": "application/json" },
+    body: JSON.stringify({ destinationUrl: "https://newcampaign.com/may" }),
+  });
+}`}
+          />
 
           <H id="openapi">OpenAPI / SDK</H>
           <P>
