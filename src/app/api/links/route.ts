@@ -3,7 +3,7 @@ import { and, desc, eq, gte, inArray, isNull, like, lte, or, sql } from "drizzle
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { links, linkTags, tags as tagsTable } from "@/lib/db/schema";
+import { folders as foldersTable, links, linkTags, tags as tagsTable } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 import { generateSlug, isValidSlug } from "@/lib/slug";
 import { createLinkSchema } from "@/lib/validators";
@@ -81,7 +81,22 @@ export async function GET(req: Request) {
       tagMap.set(t.linkId, arr);
     }
   }
-  const enriched = rows.map((l) => ({ ...l, tags: tagMap.get(l.id) ?? [] }));
+  // Attach folder
+  const folderIds = Array.from(new Set(rows.map((l) => l.folderId).filter(Boolean) as string[]));
+  const folderMap = new Map<string, { id: string; name: string; color: string }>();
+  if (folderIds.length > 0) {
+    const folderRows = db
+      .select({ id: foldersTable.id, name: foldersTable.name, color: foldersTable.color })
+      .from(foldersTable)
+      .where(inArray(foldersTable.id, folderIds))
+      .all();
+    for (const f of folderRows) folderMap.set(f.id, f);
+  }
+  const enriched = rows.map((l) => ({
+    ...l,
+    tags: tagMap.get(l.id) ?? [],
+    folder: l.folderId ? folderMap.get(l.folderId) ?? null : null,
+  }));
   return NextResponse.json({ links: enriched, count: enriched.length });
 }
 
