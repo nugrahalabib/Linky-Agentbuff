@@ -268,31 +268,31 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* ── PHONE: Linky Page — proper iPhone proportions ── */}
+                {/* ── PHONE: Linky Page — substantial iPhone, balanced with laptop ── */}
                 <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[230px]">
-                    {/* Outer bezel — uniform thickness like real phone */}
-                    <div className="relative rounded-[40px] bg-zinc-900 p-[10px] shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
-                      {/* Dynamic Island notch — pill in middle top */}
-                      <div className="absolute left-1/2 top-[18px] -translate-x-1/2 z-10 h-[22px] w-[70px] rounded-full bg-zinc-950" />
+                  <div className="w-full max-w-[300px]">
+                    {/* Outer bezel — thicker, more present */}
+                    <div className="relative rounded-[44px] bg-zinc-900 p-3 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
+                      {/* Dynamic Island notch */}
+                      <div className="absolute left-1/2 top-5 -translate-x-1/2 z-10 h-[26px] w-[88px] rounded-full bg-zinc-950" />
                       {/* Screen */}
                       <div
-                        className="rounded-[30px] overflow-hidden"
+                        className="rounded-[32px] overflow-hidden"
                         style={{
                           background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 50%,#06B6D4 100%)",
                           color: "#fff",
                         }}
                       >
                         {/* Status bar spacer */}
-                        <div className="h-12" />
+                        <div className="h-14" />
                         {/* Content */}
-                        <div className="px-5 pb-5 text-center">
-                          <div className="mx-auto h-14 w-14 rounded-full bg-white/20 backdrop-blur ring-2 ring-white/30 flex items-center justify-center">
-                            <span className="text-xl">✨</span>
+                        <div className="px-6 pb-6 text-center">
+                          <div className="mx-auto h-20 w-20 rounded-full bg-white/20 backdrop-blur ring-2 ring-white/30 flex items-center justify-center">
+                            <span className="text-3xl">✨</span>
                           </div>
-                          <div className="mt-2 font-bold text-sm text-white">@nugra</div>
-                          <div className="text-[10px] text-white/85">Creator · Developer</div>
-                          <div className="mt-3 space-y-1.5">
+                          <div className="mt-3 font-bold text-base text-white">@nugra</div>
+                          <div className="text-xs text-white/85">Creator · Developer</div>
+                          <div className="mt-5 space-y-2.5">
                             {[
                               { label: "YouTube", emoji: "▶️" },
                               { label: "TikTok", emoji: "🎵" },
@@ -301,21 +301,21 @@ export default function HomePage() {
                             ].map((l) => (
                               <div
                                 key={l.label}
-                                className="rounded-full bg-white px-3 py-2 text-[11px] font-semibold shadow-sm flex items-center justify-center gap-1.5"
+                                className="rounded-full bg-white px-4 py-2.5 text-sm font-semibold shadow-sm flex items-center justify-center gap-2"
                                 style={{ color: "#18181B" }}
                               >
-                                <span className="text-xs">{l.emoji}</span>
+                                <span className="text-base">{l.emoji}</span>
                                 <span>{l.label}</span>
                               </div>
                             ))}
                           </div>
-                          <div className="mt-3 text-[9px] text-white/70">Powered by Linky</div>
+                          <div className="mt-5 text-[10px] text-white/70">Powered by Linky</div>
                           {/* Home indicator bar */}
-                          <div className="mx-auto mt-3 h-[3px] w-20 rounded-full bg-white/40" />
+                          <div className="mx-auto mt-4 h-1 w-24 rounded-full bg-white/40" />
                         </div>
                       </div>
                     </div>
-                    <div className="text-center mt-3 text-[11px] text-[color:var(--muted-foreground)] font-mono">
+                    <div className="text-center mt-3 text-xs text-[color:var(--muted-foreground)] font-mono">
                       {APP_HOST}/@nugra
                     </div>
                   </div>
