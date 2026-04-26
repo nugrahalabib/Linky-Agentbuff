@@ -68,15 +68,47 @@ const URL_FEATURES = [
 ];
 
 const MICRO_FEATURES = [
-  { icon: Link2, title: "Custom slug", desc: `${APP_HOST}/promo-spesial` },
-  { icon: Lock, title: "Password lock", desc: "Gate dengan bcrypt, untuk link privat" },
-  { icon: Clock, title: "Kedaluwarsa otomatis", desc: "Tanggal atau batas klik" },
-  { icon: Wand2, title: "UTM builder + recipes", desc: "Template tersimpan per-channel" },
-  { icon: Folder, title: "Folder & tag", desc: "Kelompokkan ribuan link tetap rapi" },
-  { icon: FileSpreadsheet, title: "CSV import/export", desc: "Migrasi 10.000 link sekaligus" },
-  { icon: Eye, title: "OG preview kustom", desc: "Override title/desc/image saat di-share" },
-  { icon: Radio, title: "Cloaking iframe", desc: "URL pendekmu tetap di address bar" },
-  { icon: Globe, title: "Bahasa Indonesia", desc: "Default WIB, dark mode otomatis" },
+  { icon: Link2, title: "Ubah Nama Link Sesukamu", desc: `${APP_HOST}/promo-spesial` },
+  {
+    icon: Lock,
+    title: "Kunci dengan Password",
+    desc: "Aman! Lindungi link rahasiamu dengan password agar tidak sembarang orang bisa buka.",
+  },
+  {
+    icon: Clock,
+    title: "Link Bisa Kedaluwarsa",
+    desc: "Atur link agar mati otomatis berdasarkan tanggal tertentu atau jumlah klik maksimal.",
+  },
+  {
+    icon: Wand2,
+    title: "Pelacak Kampanye (UTM)",
+    desc: "Gampang lacak sumber klik. Simpan format link-mu agar tidak perlu repot bikin ulang tiap ada promo.",
+  },
+  {
+    icon: Folder,
+    title: "Manajemen Folder & Tag",
+    desc: "Kelompokkan dan beri label pada ribuan link-mu supaya selalu rapi dan gampang dicari.",
+  },
+  {
+    icon: FileSpreadsheet,
+    title: "Import & Export Cepat",
+    desc: "Pindahkan, masukkan, atau backup puluhan ribu link sekaligus cuma dengan satu klik.",
+  },
+  {
+    icon: Eye,
+    title: "Atur Tampilan di Sosmed",
+    desc: "Bebas ganti gambar, judul, dan teks yang muncul saat link dibagikan di WhatsApp, FB, atau Twitter.",
+  },
+  {
+    icon: Radio,
+    title: "Sembunyikan Link Asli (Masking)",
+    desc: "Bikin pengunjung tetap melihat nama link pendekmu di browser, bukan alamat aslinya yang panjang.",
+  },
+  {
+    icon: Globe,
+    title: "Lokal & Ramah di Mata",
+    desc: "Tersedia dalam Bahasa Indonesia, zona waktu WIB otomatis, dan Dark Mode yang bikin nyaman.",
+  },
 ];
 
 const BIO_BLOCKS = [
@@ -512,9 +544,9 @@ export default function HomePage() {
             <div className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--primary)] uppercase tracking-wider">
               Semua fitur
             </div>
-            <h2 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">Dan puluhan detil lain.</h2>
+            <h2 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">Dilengkapi Puluhan Fitur Ekstra.</h2>
             <p className="mt-3 text-[color:var(--muted-foreground)]">
-              Dirancang untuk kenyamanan — dari keamanan hingga aksesibilitas.
+              Dibuat sedetail mungkin agar pengalamanmu mengatur link jadi lebih aman, rapi, dan nyaman.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
