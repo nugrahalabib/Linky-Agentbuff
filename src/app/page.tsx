@@ -270,33 +270,31 @@ export default function HomePage() {
 
                 {/* ── PHONE: Linky Page — clean, minimal, no giant notch ── */}
                 <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[300px]">
+                  <div className="w-full max-w-[290px]">
                     {/* Phone bezel — uniform thickness */}
                     <div className="rounded-[44px] bg-zinc-900 p-2.5 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
-                      {/* Screen — LOCKED to real iPhone aspect 9:19.5 (iPhone 15/16) */}
+                      {/* Screen — content drives height; padding tuned so total ratio ≈ iPhone 19.5:9 */}
                       <div
-                        className="rounded-[36px] overflow-hidden relative aspect-[9/19.5] flex flex-col"
+                        className="rounded-[36px] relative"
                         style={{
                           background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 55%,#06B6D4 100%)",
                           color: "#fff",
                         }}
                       >
-                        {/* Dynamic Island — small pill at top */}
+                        {/* Dynamic Island */}
                         <div className="absolute left-1/2 top-2 -translate-x-1/2 h-[18px] w-[80px] rounded-full bg-zinc-950 z-10" />
 
-                        {/* Content fills screen with even distribution */}
-                        <div className="flex-1 flex flex-col px-5 pt-9 pb-5 text-center">
-                          {/* Avatar + identity */}
-                          <div className="flex flex-col items-center">
-                            <div className="h-16 w-16 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg">
-                              <span className="text-2xl">✨</span>
-                            </div>
-                            <div className="mt-2.5 font-bold text-sm text-white">@nugra</div>
-                            <div className="text-[11px] text-white/85">Creator · Developer</div>
+                        {/* Content with proper iPhone-like vertical rhythm */}
+                        <div className="px-5 pt-10 pb-6 text-center">
+                          {/* Avatar */}
+                          <div className="mx-auto h-16 w-16 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg">
+                            <span className="text-2xl">✨</span>
                           </div>
+                          <div className="mt-2.5 font-bold text-sm text-white">@nugra</div>
+                          <div className="text-[11px] text-white/85">Creator · Developer</div>
 
-                          {/* Buttons stacked — fills remaining space */}
-                          <div className="mt-5 space-y-2 flex-1">
+                          {/* 4 link buttons */}
+                          <div className="mt-5 space-y-2">
                             {[
                               { label: "YouTube", emoji: "▶️" },
                               { label: "TikTok", emoji: "🎵" },
@@ -314,12 +312,10 @@ export default function HomePage() {
                             ))}
                           </div>
 
-                          {/* Footer */}
-                          <div className="mt-3 text-[9px] text-white/70 uppercase tracking-wider">
+                          <div className="mt-5 text-[9px] text-white/70 uppercase tracking-wider">
                             Powered by Linky
                           </div>
-                          {/* Home indicator */}
-                          <div className="mx-auto mt-2 h-1 w-20 rounded-full bg-white/40" />
+                          <div className="mx-auto mt-3 h-1 w-20 rounded-full bg-white/40" />
                         </div>
                       </div>
                     </div>
