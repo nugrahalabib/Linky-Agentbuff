@@ -578,18 +578,19 @@ export default function HomePage() {
                   </span>
                 </div>
                 <h2 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">
-                  Integrasi cepat dengan <span className="gradient-text">REST API.</span>
+                  Integrasi Mulus dengan <span className="gradient-text">REST API Linky</span>
                 </h2>
                 <p className="mt-4 text-[color:var(--muted-foreground)]">
-                  Buat API key dari dashboard, POST link dari backend-mu, terima webhook saat ada klik —
-                  signed dengan HMAC-SHA256. CSV import untuk migrasi dari platform lama.
+                  Bangun sistem manajemen link kustom dengan mudah. Generate API key langsung dari dashboard,
+                  kelola link otomatis lewat backend-mu, dan dapatkan notifikasi real-time via Webhook yang
+                  dijamin aman (HMAC-SHA256). Punya data lama? Migrasi ribuan link dalam sekejap dengan CSV.
                 </p>
                 <div className="mt-6 grid gap-2 text-sm">
                   {[
-                    { icon: Code2, text: "Endpoint RESTful dengan Bearer auth" },
-                    { icon: Webhook, text: "Webhooks: link.clicked, link.created, link.deleted" },
-                    { icon: FileSpreadsheet, text: "CSV bulk import hingga 10.000 baris" },
-                    { icon: Zap, text: "Error code standar + cursor pagination" },
+                    { icon: Code2, text: "Endpoint RESTful dengan autentikasi Bearer" },
+                    { icon: Webhook, text: "Webhook real-time untuk event klik, buat, dan hapus" },
+                    { icon: FileSpreadsheet, text: "Migrasi massal via CSV hingga 10.000 baris" },
+                    { icon: Zap, text: "Standard error code & cursor pagination yang rapi" },
                   ].map((r) => (
                     <div key={r.text} className="flex items-center gap-2">
                       <r.icon className="h-4 w-4 text-[color:var(--primary)]" strokeWidth={1.75} />
@@ -599,7 +600,7 @@ export default function HomePage() {
                 </div>
                 <div className="mt-6 flex gap-3">
                   <Button asChild>
-                    <Link href="/signup">Dapatkan API key</Link>
+                    <Link href="/signup">Baca Dokumentasi API</Link>
                   </Button>
                 </div>
               </div>
@@ -614,7 +615,7 @@ export default function HomePage() {
                 <pre className="leading-relaxed">
                   <span style={{ color: "#A1A1AA" }}># 1. Daftar + bikin API key di dashboard{"\n"}</span>
                   <span style={{ color: "#A1A1AA" }}># 2. POST untuk bikin link pendek{"\n\n"}</span>
-                  <span style={{ color: "#F472B6" }}>curl</span> -X POST https://{APP_HOST}/api/v1/links \{"\n"}
+                  <span style={{ color: "#F472B6" }}>curl</span> -X POST https://linky.agentbuff.id/v1/links \{"\n"}
                   {"  "}-H <span style={{ color: "#06B6D4" }}>{'"Authorization: Bearer lnk_..."'}</span> \{"\n"}
                   {"  "}-H <span style={{ color: "#06B6D4" }}>{'"Content-Type: application/json"'}</span> \{"\n"}
                   {"  "}-d <span style={{ color: "#10B981" }}>{"'{\"destinationUrl\":\"https://..\",\"customSlug\":\"promo\"}'"}</span>
