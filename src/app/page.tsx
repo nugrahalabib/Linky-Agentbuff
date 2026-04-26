@@ -268,44 +268,51 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* ── PHONE: Linky Page — natural phone aspect 9:19 ── */}
+                {/* ── PHONE: Linky Page — proper iPhone proportions ── */}
                 <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[240px]">
-                    <div className="rounded-[34px] border border-[color:var(--border)] bg-zinc-900 p-2 shadow-[0_24px_60px_-12px_rgba(6,182,212,0.3)]">
-                      {/* Phone notch */}
-                      <div className="h-4 flex items-center justify-center">
-                        <div className="h-0.5 w-10 rounded-full bg-zinc-700" />
-                      </div>
+                  <div className="w-full max-w-[230px]">
+                    {/* Outer bezel — uniform thickness like real phone */}
+                    <div className="relative rounded-[40px] bg-zinc-900 p-[10px] shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
+                      {/* Dynamic Island notch — pill in middle top */}
+                      <div className="absolute left-1/2 top-[18px] -translate-x-1/2 z-10 h-[22px] w-[70px] rounded-full bg-zinc-950" />
+                      {/* Screen */}
                       <div
-                        className="rounded-[26px] aspect-[9/19] p-4 text-center flex flex-col"
+                        className="rounded-[30px] overflow-hidden"
                         style={{
                           background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 50%,#06B6D4 100%)",
                           color: "#fff",
                         }}
                       >
-                        <div className="mx-auto h-12 w-12 rounded-full bg-white/20 backdrop-blur ring-2 ring-white/30 flex items-center justify-center">
-                          <span className="text-lg">✨</span>
+                        {/* Status bar spacer */}
+                        <div className="h-12" />
+                        {/* Content */}
+                        <div className="px-5 pb-5 text-center">
+                          <div className="mx-auto h-14 w-14 rounded-full bg-white/20 backdrop-blur ring-2 ring-white/30 flex items-center justify-center">
+                            <span className="text-xl">✨</span>
+                          </div>
+                          <div className="mt-2 font-bold text-sm text-white">@nugra</div>
+                          <div className="text-[10px] text-white/85">Creator · Developer</div>
+                          <div className="mt-3 space-y-1.5">
+                            {[
+                              { label: "YouTube", emoji: "▶️" },
+                              { label: "TikTok", emoji: "🎵" },
+                              { label: "Shop", emoji: "🛍️" },
+                              { label: "Contact", emoji: "✉️" },
+                            ].map((l) => (
+                              <div
+                                key={l.label}
+                                className="rounded-full bg-white px-3 py-2 text-[11px] font-semibold shadow-sm flex items-center justify-center gap-1.5"
+                                style={{ color: "#18181B" }}
+                              >
+                                <span className="text-xs">{l.emoji}</span>
+                                <span>{l.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-3 text-[9px] text-white/70">Powered by Linky</div>
+                          {/* Home indicator bar */}
+                          <div className="mx-auto mt-3 h-[3px] w-20 rounded-full bg-white/40" />
                         </div>
-                        <div className="mt-2 font-bold text-sm text-white">@nugra</div>
-                        <div className="text-[10px] text-white/85">Creator · Developer</div>
-                        <div className="mt-3 space-y-1.5 flex-1">
-                          {[
-                            { label: "YouTube", emoji: "▶️" },
-                            { label: "TikTok", emoji: "🎵" },
-                            { label: "Shop", emoji: "🛍️" },
-                            { label: "Contact", emoji: "✉️" },
-                          ].map((l) => (
-                            <div
-                              key={l.label}
-                              className="rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-semibold shadow-sm flex items-center justify-center gap-1.5"
-                              style={{ color: "#18181B" }}
-                            >
-                              <span className="text-xs">{l.emoji}</span>
-                              <span>{l.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-2 text-[9px] text-white/70">Powered by Linky</div>
                       </div>
                     </div>
                     <div className="text-center mt-3 text-[11px] text-[color:var(--muted-foreground)] font-mono">
