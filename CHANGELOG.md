@@ -5,6 +5,45 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-04-26
+
+### Fixed (CSV Import bugs nyata)
+- **iOS/Android deep link tertukar** — `iosUrl` malah ambil dari kolom `android_url` dan sebaliknya. Sekarang benar.
+- **Bit.ly export gagal langsung** — Bit.ly pakai `long_url` (bukan `destination_url`). Sekarang auto-detect alias dari 5 platform.
+- **BOM Excel** — `﻿` di awal CSV bikin header pertama tidak match. Sekarang di-strip.
+- **Delimiter** — CSV Excel EU pakai `;`, TSV pakai `\t`. Sekarang auto-detect (sniff non-quoted occurrences).
+
+### Added (Migrasi profesional yang beneran bisa dipakai)
+- **Auto-detect provider** dari header (Bit.ly / Rebrandly / TinyURL / Dub.co / Short.io / Linky template / unknown).
+- **Field alias map (50+ alias)** — `long_url`/`originalurl`/`url`/`destination`/`target` semua → `destination_url`. `slashtag`/`key`/`path` → slug. dst.
+- **3-step wizard UI**:
+  1. Upload (drag-drop atau paste, support .csv/.tsv)
+  2. Map kolom — tabel "Field Linky → Kolom CSV" dengan auto-map + dropdown override per field, opsi conflict mode + folder default + tag default
+  3. Preview & commit — sample 10 baris pertama dengan field hasil mapping, daftar tag baru yang akan dibuat, daftar issue
+- **Conflict resolution** — `skip` (default) / `rename` (auto-suffix `-1`, `-2`, ...) / `fail`. Verified end-to-end.
+- **Tags auto-create** — parse cell `marketing|launch` atau `marketing,launch`, auto-create tag yang belum ada di workspace, link otomatis di-tag.
+- **Default folder + default tag** — opsional, terapkan ke semua link hasil import.
+- **Error report download** — endpoint `POST /api/links/import/error-report` serve CSV `row, error, original_data` untuk semua issue.
+- **Provider migration guide** — accordion di `/dashboard/import` dengan langkah export dari masing-masing platform + sample CSV download per provider + link ke docs official.
+- **Page judul + subjudul disempurnakan** — "Migrasi & Import CSV" dengan deskripsi yang menjelaskan kapabilitas.
+
+### Validators / API
+- `/api/links/import` body baru: `mapping?: Partial<Record<FieldKey, number|null>>`, `conflict: 'skip'|'rename'|'fail'`, `defaultFolderId?`, `defaultTagIds?: string[]`.
+- Response preview: `provider`, `delimiter`, `headers`, `mapping`, `tags_to_create[]`, `issues[]` dengan field `original` per issue.
+- Issues array boleh sampai 100 entries (dari 50).
+
+### Tests
+- 25 unit test baru: `csv.test.ts` (BOM strip, delimiter detect, escaped quotes, semicolon EU format) + `csv-mapping.test.ts` (autoMap untuk 5 platform, detectProvider, parseTagsCell).
+- **Total 119/119 tests pass**.
+
+### Verified end-to-end (cURL + DB inspection)
+- Bit.ly format: 3 link + 3 tag dibuat, link↔tag association benar.
+- Rebrandly format: provider detected, slashtag → slug.
+- BOM + semicolon: stripped + delimiter detected, mapped correctly.
+- Conflict modes: fail/skip/rename behave sesuai spec.
+- Deep link import: ios_url ke `apps.apple.com`, android_url ke `play.google.com` (bukan tertukar).
+- Error report download → CSV bersih dengan 3 kolom.
+
 ## [0.5.2] - 2026-04-26
 
 ### Added
