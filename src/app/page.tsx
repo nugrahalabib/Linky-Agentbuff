@@ -180,15 +180,15 @@ export default function HomePage() {
               Tanpa kartu kredit · Open-source MIT · Self-hostable
             </p>
 
-            {/* Dual product mockup — proportional & color-balanced */}
-            <div className="mt-16 relative mx-auto max-w-[1400px]">
+            {/* Dashboard mockup — single, centered */}
+            <div className="mt-16 relative mx-auto max-w-3xl">
               <div
                 className="absolute -inset-8 bg-gradient-to-r from-brand-500/15 via-accent-500/15 to-brand-500/15 rounded-[40px] blur-3xl"
                 aria-hidden
               />
-              <div className="relative flex flex-col md:flex-row gap-6 items-center justify-center">
+              <div className="relative">
                 {/* ── LAPTOP: Dashboard — natural height, content fills properly ── */}
-                <div className="w-full md:flex-1 md:max-w-[560px] rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-[0_24px_60px_-12px_rgba(79,70,229,0.25)] overflow-hidden">
+                <div className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-[0_24px_60px_-12px_rgba(79,70,229,0.25)] overflow-hidden">
                   {/* Window chrome */}
                   <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--muted)]/60">
                     <div className="flex gap-1.5">
@@ -268,59 +268,6 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* ── PHONE: Linky Page — clean, minimal, no giant notch ── */}
-                <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[720px]">
-                    {/* Phone bezel — wide horizontally, height stays compact */}
-                    <div className="rounded-[44px] bg-zinc-900 p-2.5 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.4)] ring-1 ring-zinc-800">
-                      {/* Screen */}
-                      <div
-                        className="rounded-[36px] relative"
-                        style={{
-                          background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 55%,#06B6D4 100%)",
-                          color: "#fff",
-                        }}
-                      >
-                        {/* Dynamic Island */}
-                        <div className="absolute left-1/2 top-2 -translate-x-1/2 h-[18px] w-[80px] rounded-full bg-zinc-950 z-10" />
-
-                        {/* Content — buttons fill phone width */}
-                        <div className="px-6 pt-10 pb-6 text-center">
-                          {/* Avatar — keep small */}
-                          <div className="mx-auto h-16 w-16 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg">
-                            <span className="text-2xl">✨</span>
-                          </div>
-                          <div className="mt-2.5 font-bold text-sm text-white">@nugrahalabib</div>
-                          <div className="text-[11px] text-white/85">Creator · Developer</div>
-
-                          {/* 4 link buttons — full width */}
-                          <div className="mt-5 space-y-2">
-                            {[
-                              { label: "YouTube", emoji: "▶️" },
-                              { label: "TikTok", emoji: "🎵" },
-                              { label: "Shop", emoji: "🛍️" },
-                              { label: "Contact", emoji: "✉️" },
-                            ].map((l) => (
-                              <div
-                                key={l.label}
-                                className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold shadow-sm flex items-center justify-center gap-2"
-                                style={{ color: "#18181B" }}
-                              >
-                                <span className="text-base">{l.emoji}</span>
-                                <span>{l.label}</span>
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="mt-5 text-[9px] text-white/70 uppercase tracking-wider">
-                            Powered by Linky
-                          </div>
-                          <div className="mx-auto mt-3 h-1 w-20 rounded-full bg-white/40" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
