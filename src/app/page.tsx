@@ -180,98 +180,122 @@ export default function HomePage() {
               Tanpa kartu kredit · Open-source MIT · Self-hostable
             </p>
 
-            {/* Dual product mockup */}
+            {/* Dual product mockup — proportional & color-balanced */}
             <div className="mt-16 relative mx-auto max-w-5xl">
               <div
-                className="absolute -inset-4 bg-gradient-to-r from-brand-500/20 via-accent-500/20 to-brand-500/20 rounded-3xl blur-2xl"
+                className="absolute -inset-8 bg-gradient-to-r from-brand-500/15 via-accent-500/15 to-brand-500/15 rounded-[40px] blur-3xl"
                 aria-hidden
               />
-              <div className="relative grid gap-4 md:grid-cols-[1.7fr_1fr] items-end">
-                {/* Laptop: Dashboard */}
-                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-2xl overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--muted)]">
-                    <div className="flex gap-1.5">
-                      <div className="h-3 w-3 rounded-full bg-red-400" />
-                      <div className="h-3 w-3 rounded-full bg-yellow-400" />
-                      <div className="h-3 w-3 rounded-full bg-green-400" />
-                    </div>
-                    <div className="ml-4 flex-1 rounded-md bg-[color:var(--background)] px-3 py-1 text-xs font-mono text-[color:var(--muted-foreground)] truncate">
-                      {APP_HOST}/dashboard/links/promo
-                    </div>
-                  </div>
-                  <div className="p-6 grid gap-4 md:grid-cols-[2fr_1fr]">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <code className="rounded bg-[color:var(--muted)] px-2 py-1 font-mono text-xs">
-                          {APP_HOST}/promo
-                        </code>
-                        <Copy className="h-3 w-3 text-[color:var(--muted-foreground)]" />
+              <div className="relative grid gap-6 md:grid-cols-[1.55fr_1fr] items-stretch">
+                {/* ── LAPTOP: Dashboard (light card matching landing tone) ── */}
+                <div className="flex">
+                  <div className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-[0_24px_60px_-12px_rgba(79,70,229,0.25)] overflow-hidden flex flex-col">
+                    {/* Window chrome — subtle, not jet-black */}
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--muted)]/60">
+                      <div className="flex gap-1.5">
+                        <div className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
                       </div>
-                      <div>
-                        <div className="text-xs uppercase tracking-wider text-[color:var(--muted-foreground)]">
-                          Klik hari ini
-                        </div>
-                        <div className="mt-1 text-3xl font-bold tabular-nums gradient-text">8,429</div>
-                        <div className="text-xs text-[color:var(--success)] font-medium">▲ 34%</div>
-                      </div>
-                      <div className="h-20 rounded-lg bg-gradient-to-r from-brand-500/10 to-accent-500/10 flex items-end gap-1 p-2">
-                        {[30, 45, 38, 62, 48, 75, 92, 68, 85, 70, 88, 95].map((h, i) => (
-                          <div
-                            key={i}
-                            className="flex-1 rounded-sm bg-gradient-to-t from-brand-600 to-accent-500"
-                            style={{ height: `${h}%` }}
-                          />
-                        ))}
+                      <div className="ml-4 flex-1 rounded-md bg-[color:var(--background)] px-3 py-1 text-[11px] font-mono text-[color:var(--muted-foreground)] truncate border border-[color:var(--border)]">
+                        {APP_HOST}/dashboard/links/promo
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { l: "🇮🇩 ID", v: "5.2K" },
-                        { l: "🇺🇸 US", v: "1.8K" },
-                        { l: "Mobile", v: "73%" },
-                        { l: "Organik", v: "4.1K" },
-                      ].map((s) => (
-                        <div key={s.l} className="rounded-md bg-[color:var(--muted)] p-2">
-                          <div className="text-[10px] text-[color:var(--muted-foreground)]">{s.l}</div>
-                          <div className="text-sm font-semibold tabular-nums">{s.v}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Phone: Linky Page */}
-                <div className="mx-auto w-full max-w-[220px]">
-                  <div className="rounded-[32px] border-[6px] border-[color:var(--foreground)] bg-[color:var(--foreground)] overflow-hidden shadow-2xl">
-                    <div className="h-4 bg-[color:var(--foreground)] flex items-center justify-center">
-                      <div className="h-1 w-10 rounded-full bg-white/40" />
-                    </div>
-                    <div
-                      className="aspect-[9/16] p-4 text-center"
-                      style={{
-                        background: "linear-gradient(180deg,#4F46E5,#06B6D4)",
-                        color: "#fff",
-                      }}
-                    >
-                      <div className="mx-auto h-14 w-14 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                        <span className="text-xl">✨</span>
+                    {/* Content — same gradient tones as phone for harmony */}
+                    <div className="p-6 grid gap-4 md:grid-cols-[2fr_1fr] flex-1">
+                      <div className="space-y-3 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <code className="rounded-md bg-gradient-to-r from-brand-500/10 to-accent-500/10 border border-brand-500/15 px-2.5 py-1 font-mono text-xs text-[color:var(--foreground)]">
+                            {APP_HOST}/promo
+                          </code>
+                          <Copy className="h-3 w-3 text-[color:var(--muted-foreground)]" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-[color:var(--muted-foreground)] font-semibold">
+                            Klik hari ini
+                          </div>
+                          <div className="mt-0.5 text-4xl font-bold tabular-nums gradient-text leading-none">
+                            8,429
+                          </div>
+                          <div className="mt-1 text-xs text-[color:var(--success)] font-semibold">▲ 34% vs kemarin</div>
+                        </div>
+                        {/* Bar chart — same brand gradient as phone */}
+                        <div className="h-20 rounded-lg bg-gradient-to-br from-brand-500/8 via-accent-500/5 to-brand-500/8 flex items-end gap-1 p-2 border border-[color:var(--border)]">
+                          {[30, 45, 38, 62, 48, 75, 92, 68, 85, 70, 88, 95].map((h, i) => (
+                            <div
+                              key={i}
+                              className="flex-1 rounded-sm bg-gradient-to-t from-brand-600 to-accent-400"
+                              style={{ height: `${h}%`, opacity: 0.55 + i * 0.04 }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                      <div className="mt-2 font-bold text-sm">@nugra</div>
-                      <div className="text-[10px] opacity-80">Creator · Developer</div>
-                      <div className="mt-3 space-y-1.5">
-                        {["YouTube", "TikTok", "Shop", "Contact"].map((l) => (
+                      <div className="grid grid-cols-2 gap-2 content-start">
+                        {[
+                          { l: "ID", flag: "🇮🇩", v: "5.2K" },
+                          { l: "US", flag: "🇺🇸", v: "1.8K" },
+                          { l: "Mobile", flag: "📱", v: "73%" },
+                          { l: "Organik", flag: "✨", v: "4.1K" },
+                        ].map((s) => (
                           <div
-                            key={l}
-                            className="rounded-lg bg-white/95 text-[color:var(--foreground)] px-3 py-2 text-xs font-semibold shadow-sm"
+                            key={s.l}
+                            className="rounded-lg bg-[color:var(--muted)]/50 border border-[color:var(--border)] p-2"
                           >
-                            {l}
+                            <div className="text-[10px] text-[color:var(--muted-foreground)] flex items-center gap-1">
+                              <span>{s.flag}</span>
+                              {s.l}
+                            </div>
+                            <div className="text-sm font-bold tabular-nums text-[color:var(--foreground)]">{s.v}</div>
                           </div>
                         ))}
                       </div>
                     </div>
                   </div>
-                  <div className="text-center mt-2 text-[10px] text-[color:var(--muted-foreground)] font-mono">
-                    {APP_HOST}/@nugra
+                </div>
+
+                {/* ── PHONE: Linky Page — same height, softer gradient ── */}
+                <div className="flex justify-center md:justify-start">
+                  <div className="w-full max-w-[260px] flex flex-col">
+                    <div className="rounded-[36px] border border-[color:var(--border)] bg-[color:var(--card)] p-2 shadow-[0_24px_60px_-12px_rgba(6,182,212,0.25)] flex-1 flex flex-col">
+                      {/* Phone notch */}
+                      <div className="h-5 flex items-center justify-center">
+                        <div className="h-1 w-12 rounded-full bg-[color:var(--muted-foreground)]/30" />
+                      </div>
+                      <div
+                        className="rounded-[26px] flex-1 p-5 text-center flex flex-col"
+                        style={{
+                          background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 50%,#06B6D4 100%)",
+                          color: "#fff",
+                        }}
+                      >
+                        <div className="mx-auto h-16 w-16 rounded-full bg-white/20 backdrop-blur ring-2 ring-white/30 flex items-center justify-center">
+                          <span className="text-2xl">✨</span>
+                        </div>
+                        <div className="mt-3 font-bold text-base">@nugra</div>
+                        <div className="text-[11px] opacity-90">Creator · Developer</div>
+                        <div className="mt-4 space-y-2 flex-1">
+                          {[
+                            { label: "YouTube", emoji: "▶️" },
+                            { label: "TikTok", emoji: "🎵" },
+                            { label: "Shop", emoji: "🛍️" },
+                            { label: "Contact", emoji: "✉️" },
+                          ].map((l) => (
+                            <div
+                              key={l.label}
+                              className="rounded-xl bg-white/95 text-[color:var(--foreground)] px-3 py-2.5 text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5"
+                            >
+                              <span>{l.emoji}</span>
+                              {l.label}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 text-[9px] opacity-60">Powered by Linky</div>
+                      </div>
+                    </div>
+                    <div className="text-center mt-3 text-[11px] text-[color:var(--muted-foreground)] font-mono">
+                      {APP_HOST}/@nugra
+                    </div>
                   </div>
                 </div>
               </div>
