@@ -6,6 +6,7 @@ import { links } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 import { updateLinkSchema } from "@/lib/validators";
 import { isValidUrl, normalizeUrl } from "@/lib/utils";
+import { fireWebhooks } from "@/lib/webhooks";
 
 async function loadOwned(id: string) {
   const ctx = await getSessionUser();
@@ -76,6 +77,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   db.update(links).set(patch).where(eq(links.id, id)).run();
   const updated = db.select().from(links).where(eq(links.id, id)).get();
+  if (updated && r.workspace.id) {
+    fireWebhooks(r.workspace.id, "link.updated", {
+      link_id: updated.id,
+      slug: updated.slug,
+      destination_url: updated.destinationUrl,
+      title: updated.title,
+      archived: updated.archived,
+    });
+  }
   return NextResponse.json({ link: updated });
 }
 
@@ -83,6 +93,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const r = await loadOwned(id);
   if ("err" in r) return r.err;
+  const snapshot = { link_id: r.link.id, slug: r.link.slug, destination_url: r.link.destinationUrl };
   db.delete(links).where(eq(links.id, id)).run();
+  fireWebhooks(r.workspace.id, "link.deleted", snapshot);
   return NextResponse.json({ ok: true });
 }

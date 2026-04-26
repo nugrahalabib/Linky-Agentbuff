@@ -325,6 +325,24 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS sbc_expires_idx ON safe_browsing_cache(expires_at);
     `,
   },
+  {
+    id: "0009_webhook_deliveries",
+    sql: `
+      CREATE TABLE IF NOT EXISTS webhook_deliveries (
+        id TEXT PRIMARY KEY,
+        webhook_id TEXT NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+        event TEXT NOT NULL,
+        status_code INTEGER,
+        success INTEGER NOT NULL DEFAULT 0,
+        duration_ms INTEGER,
+        error TEXT,
+        request_body TEXT,
+        response_snippet TEXT,
+        ts INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS whd_webhook_idx ON webhook_deliveries(webhook_id, ts);
+    `,
+  },
 ];
 
 function ensureDir(filePath: string): void {
