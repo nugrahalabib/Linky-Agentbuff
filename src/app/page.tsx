@@ -181,7 +181,7 @@ export default function HomePage() {
             </p>
 
             {/* Dual product mockup — proportional & color-balanced */}
-            <div className="mt-16 relative mx-auto max-w-5xl">
+            <div className="mt-16 relative mx-auto max-w-6xl">
               <div
                 className="absolute -inset-8 bg-gradient-to-r from-brand-500/15 via-accent-500/15 to-brand-500/15 rounded-[40px] blur-3xl"
                 aria-hidden
@@ -270,31 +270,31 @@ export default function HomePage() {
 
                 {/* ── PHONE: Linky Page — clean, minimal, no giant notch ── */}
                 <div className="flex justify-center shrink-0">
-                  <div className="w-full max-w-[400px]">
-                    {/* Phone bezel — wider, substantial frame */}
-                    <div className="rounded-[48px] bg-zinc-900 p-3 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.35)] ring-1 ring-zinc-800">
-                      {/* Screen — content drives height, width is generous */}
+                  <div className="w-full max-w-[500px]">
+                    {/* Phone bezel — even wider, substantial frame */}
+                    <div className="rounded-[52px] bg-zinc-900 p-3.5 shadow-[0_30px_60px_-15px_rgba(6,182,212,0.4)] ring-1 ring-zinc-800">
+                      {/* Screen */}
                       <div
-                        className="rounded-[40px] relative"
+                        className="rounded-[42px] relative"
                         style={{
                           background: "linear-gradient(180deg,#4F46E5 0%,#6366F1 55%,#06B6D4 100%)",
                           color: "#fff",
                         }}
                       >
-                        {/* Dynamic Island — bigger to match wider screen */}
-                        <div className="absolute left-1/2 top-3 -translate-x-1/2 h-[22px] w-[100px] rounded-full bg-zinc-950 z-10" />
+                        {/* Dynamic Island — scaled up */}
+                        <div className="absolute left-1/2 top-3.5 -translate-x-1/2 h-[26px] w-[120px] rounded-full bg-zinc-950 z-10" />
 
-                        {/* Content — generous horizontal padding so buttons don't stretch flat */}
-                        <div className="px-10 pt-12 pb-7 text-center">
+                        {/* Content — more horizontal padding so buttons stay reasonable width */}
+                        <div className="px-14 pt-14 pb-8 text-center">
                           {/* Avatar */}
-                          <div className="mx-auto h-20 w-20 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg">
-                            <span className="text-3xl">✨</span>
+                          <div className="mx-auto h-24 w-24 rounded-full bg-white/95 ring-4 ring-white/30 flex items-center justify-center shadow-lg">
+                            <span className="text-4xl">✨</span>
                           </div>
-                          <div className="mt-3 font-bold text-base text-white">@nugra</div>
-                          <div className="text-xs text-white/85">Creator · Developer</div>
+                          <div className="mt-3 font-bold text-lg text-white">@nugra</div>
+                          <div className="text-sm text-white/85">Creator · Developer</div>
 
                           {/* 4 link buttons */}
-                          <div className="mt-6 space-y-2.5">
+                          <div className="mt-7 space-y-3">
                             {[
                               { label: "YouTube", emoji: "▶️" },
                               { label: "TikTok", emoji: "🎵" },
@@ -303,19 +303,19 @@ export default function HomePage() {
                             ].map((l) => (
                               <div
                                 key={l.label}
-                                className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold shadow-sm flex items-center justify-center gap-2"
+                                className="rounded-2xl bg-white px-5 py-3 text-base font-semibold shadow-sm flex items-center justify-center gap-2.5"
                                 style={{ color: "#18181B" }}
                               >
-                                <span className="text-base">{l.emoji}</span>
+                                <span className="text-lg">{l.emoji}</span>
                                 <span>{l.label}</span>
                               </div>
                             ))}
                           </div>
 
-                          <div className="mt-6 text-[10px] text-white/70 uppercase tracking-wider">
+                          <div className="mt-7 text-[11px] text-white/70 uppercase tracking-wider">
                             Powered by Linky
                           </div>
-                          <div className="mx-auto mt-3 h-1 w-24 rounded-full bg-white/40" />
+                          <div className="mx-auto mt-3.5 h-1 w-28 rounded-full bg-white/40" />
                         </div>
                       </div>
                     </div>
