@@ -80,12 +80,12 @@ const MICRO_FEATURES = [
 ];
 
 const BIO_BLOCKS = [
-  { icon: Sparkles, label: "Header", desc: "Avatar, nama, bio" },
-  { icon: Link2, label: "Link Button", desc: "Tombol custom warna brand" },
-  { icon: Share2, label: "Social Row", desc: "IG, TikTok, YouTube, lainnya" },
-  { icon: ImageIcon, label: "Image", desc: "Foto produk atau moodboard" },
-  { icon: TrendingUp, label: "Countdown", desc: "Hitung mundur promo" },
-  { icon: MapPin, label: "YouTube Embed", desc: "Video langsung di halaman" },
+  { icon: Sparkles, label: "Profil & Bio", desc: "Tampilkan foto, nama, dan perkenalan singkatmu." },
+  { icon: Link2, label: "Tombol Link Custom", desc: "Bikin tombol bebas atur dengan warna khas brand-mu." },
+  { icon: Share2, label: "Ikon Sosmed", desc: "Kumpulkan semua akun IG, TikTok, YouTube di satu tempat." },
+  { icon: ImageIcon, label: "Galeri Foto", desc: "Pamerkan foto produk, banner promo, atau portofolio." },
+  { icon: TrendingUp, label: "Hitung Mundur", desc: "Bikin audiens penasaran dengan timer promo atau event." },
+  { icon: MapPin, label: "Video YouTube", desc: "Putar video langsung dari dalam halaman bio-mu." },
 ];
 
 const THEMES = [
@@ -356,17 +356,17 @@ export default function HomePage() {
           <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-24">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--accent)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--accent)] uppercase tracking-wider">
-                <Layout className="h-3 w-3" /> Produk 2
+                <Layout className="h-3 w-3" /> Fitur Unggulan
                 <span className="inline-flex items-center rounded-full bg-gradient-to-r from-brand-500 to-accent-500 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
                   Baru
                 </span>
               </div>
               <h2 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight">
-                Satu link. <span className="gradient-text">Semua hidupmu.</span>
+                Satu Link untuk Tampilkan <span className="gradient-text">Semua Karyamu.</span>
               </h2>
               <p className="mt-4 text-lg text-[color:var(--muted-foreground)]">
-                Linky Pages — halaman link-in-bio yang kamu bangun dalam 5 menit. Share ke bio Instagram,
-                TikTok, WhatsApp status. Satu URL, banyak cerita.
+                Kenalkan Linky Pages — bikin halaman link-in-bio super keren cuma butuh 5 menit! Tinggal pasang di bio
+                Instagram, TikTok, atau status WhatsApp. Praktis, cepat, dan bikin brand-mu makin profesional.
               </p>
             </div>
 
@@ -374,7 +374,7 @@ export default function HomePage() {
               {/* Left: Block types + themes */}
               <div className="space-y-8">
                 <div>
-                  <h3 className="font-bold text-xl mb-4">8 block type untuk disusun</h3>
+                  <h3 className="font-bold text-xl mb-4">Bebas Berkreasi dengan Berbagai Pilihan Konten</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {BIO_BLOCKS.map((b) => (
                       <div
@@ -393,7 +393,7 @@ export default function HomePage() {
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-xl mb-4">5 theme preset siap pakai</h3>
+                  <h3 className="font-bold text-xl mb-4">Pilih Desain Instan Sesuai Gayamu</h3>
                   <div className="flex flex-wrap gap-3">
                     {THEMES.map((t) => (
                       <div
