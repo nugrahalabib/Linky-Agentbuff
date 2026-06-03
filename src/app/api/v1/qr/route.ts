@@ -17,12 +17,16 @@ export async function GET(req: Request) {
   if (!text) return apiError("validation_error", "Param `text` wajib.", 400, a.auth.rateHeaders);
 
   const format = url.searchParams.get("format") ?? "svg";
-  const cfg = qrConfigSchema.parse({
+  const cfgParsed = qrConfigSchema.safeParse({
     fg: url.searchParams.get("fg") ?? undefined,
     bg: url.searchParams.get("bg") ?? undefined,
     size: url.searchParams.get("size") ?? undefined,
     margin: url.searchParams.get("margin") ?? undefined,
   });
+  if (!cfgParsed.success) {
+    return apiError("validation_error", cfgParsed.error.issues[0]?.message ?? "Parameter QR tidak valid.", 400, a.auth.rateHeaders);
+  }
+  const cfg = cfgParsed.data;
 
   if (format === "png") {
     const buf = await qrToPngBuffer(text, cfg);

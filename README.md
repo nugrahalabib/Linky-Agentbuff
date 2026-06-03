@@ -9,7 +9,7 @@ Production: **[linky.agentbuff.id](https://linky.agentbuff.id)**
 ## Fitur
 
 ### Core shortener
-- ✅ **Shorten instan** — tempel URL, dapat link pendek, tanpa signup (limit 5/IP/hari untuk anonim)
+- ✅ **Shorten instan** — masuk, tempel URL, dapat link pendek dari dashboard dalam hitungan detik
 - ✅ **Custom slug** — `linky.agentbuff.id/kampanye-ramadan`
 - ✅ **QR code studio** — branded (warna, logo, frame, eye-style), unduh PNG/SVG
 - ✅ **Analitik komprehensif** — total klik, pengunjung unik, geo, device, browser, referrer, top links + 7-hari sparkline + delta%
@@ -44,7 +44,6 @@ Production: **[linky.agentbuff.id](https://linky.agentbuff.id)**
 - ✅ Email + password auth, session cookie httpOnly + signed JWT (HS256)
 - ✅ Passwords bcrypt (10 rounds), API keys SHA-256 hashed
 - ✅ **Google Safe Browsing v4** + heuristic checks (suspicious TLD, punycode, internal IP, phishing patterns) — fallback ke heuristic kalau API key tidak diset
-- ✅ Anonymous shortener rate-limited per IP per hari
 - ✅ Cross-workspace isolation airtight (verified via cross-workspace pen test)
 - ✅ Security headers di `next.config.ts`
 
@@ -79,7 +78,7 @@ Buka [http://localhost:1709](http://localhost:1709).
 | `npm start` | Jalankan production build |
 | `npm run typecheck` | TypeScript strict check |
 | `npm run lint` | ESLint |
-| `npm test` | Unit tests (94 tests via `node:test` + tsx) |
+| `npm test` | Unit tests (119 tests via `node:test` + tsx) |
 | `npm run db:migrate` | Jalankan migrasi DB manual |
 
 ## Environment variables
@@ -87,9 +86,8 @@ Buka [http://localhost:1709](http://localhost:1709).
 Lihat `.env.example`. Yang penting:
 
 - `AUTH_SECRET` — **wajib di production**, minimal 24 karakter random (gen: `openssl rand -base64 32`)
-- `DATABASE_URL` — default `file:./linky.db` (SQLite). Postgres adapter siap (lihat `scripts/migrate-pg.ts`)
+- `DATABASE_URL` — default `file:./linky.db` (SQLite). Adapter Postgres masih eksperimental & belum lengkap (lihat `scripts/migrate-pg.ts`); runtime saat ini selalu SQLite
 - `NEXT_PUBLIC_APP_URL` — base URL aplikasi untuk short link (default `http://localhost:1709`)
-- `ANON_DAILY_LIMIT` — quota link anonim per IP per hari (default `5`)
 - `GOOGLE_SAFE_BROWSING_API_KEY` — opsional, aktifkan classifier real (kalau kosong, heuristic-only)
 - `REDIS_URL` — opsional, untuk rate limit & caching (graceful fallback kalau tidak diset)
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { links } from "@/lib/db/schema";
+import { folders, links } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 
 const schema = z.object({
@@ -38,6 +38,12 @@ export async function POST(req: Request) {
     db.update(links).set({ folderId: null, updatedAt: new Date() }).where(inArray(links.id, owned)).run();
   } else if (parsed.data.action === "move_folder") {
     if (!parsed.data.folderId) return NextResponse.json({ error: "folderId wajib." }, { status: 400 });
+    const folder = db
+      .select({ id: folders.id })
+      .from(folders)
+      .where(and(eq(folders.id, parsed.data.folderId), eq(folders.workspaceId, ws.id)))
+      .get();
+    if (!folder) return NextResponse.json({ error: "Folder tidak ditemukan." }, { status: 400 });
     db.update(links)
       .set({ folderId: parsed.data.folderId, updatedAt: new Date() })
       .where(inArray(links.id, owned))

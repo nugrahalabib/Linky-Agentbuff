@@ -12,7 +12,6 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
-    "db:seed": "tsx scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
     "postinstall": "tsx scripts/migrate.ts || echo 'Migrations deferred'",
     "test": "node scripts/run-tests.mjs",
@@ -63,6 +62,5 @@
     "tailwindcss": "^4.1.4",
     "tsx": "^4.20.6",
     "typescript": "^5.8.3"
-  },
-  "packageManager": "pnpm@10.24.0"
+  }
 }

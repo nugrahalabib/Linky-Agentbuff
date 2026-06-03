@@ -5,6 +5,40 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ## [Unreleased]
 
+### Security (hardening 2026-06-04)
+- **Webhook SSRF guard**: `POST /api/webhooks` & `PATCH /api/webhooks/[id]` menolak URL yang menunjuk ke alamat loopback/private/link-local/cloud-metadata atau skema non-http(s) (mencegah server fetch ke `127.0.0.1` / `169.254.169.254`).
+- **Safe Browsing internal-host detection diperluas**: helper baru `isInternalHost`/`isUnsafeRequestUrl` menangkap IPv6 (`::1`, `fc00::/7`, `fe80::/10`), seluruh `127.0.0.0/8`, `0.0.0.0`, serta IPv4 ber-encoding desimal/hex (mis. `2130706433`, `0x7f000001`). + test baru.
+- **HSTS** (`Strict-Transport-Security`) ditambah di `next.config.ts`.
+- **Content-Security-Policy (Report-Only)** ditambah di `next.config.ts` (observasi dulu, belum blocking — perlu tuning sebelum di-enforce karena iframe cloak `/c/[slug]`).
+
+### Added
+- **Edit tag & UTM recipe**: endpoint `PATCH /api/tags/[id]` & `PATCH /api/utm-recipes/[id]` (validasi + guard unik) + UI edit (tombol pensil, panel ubah) di `tag-manager.tsx` & `utm-recipe-manager.tsx`. Sebelumnya keduanya hanya create+delete.
+- **REST API v1 honor `tagIds`**: `POST` & `PATCH /api/v1/links` kini benar-benar menyimpan tag (workspace-scoped) — sebelumnya `tagIds` diterima tapi diam-diam dibuang.
+
+### Changed
+- next/font (Inter/JetBrains Mono) di-bridge ke token `@theme` (`--font-sans`/`--font-mono` kini `var(--font-inter)`/`var(--font-jetbrains)` dengan fallback) agar font yang di-download benar-benar dipakai.
+- Anonymous shorten **ditegaskan DITOLAK by design**: pembuatan link wajib login (keputusan owner). `/api/shorten` authed-only adalah perilaku yang benar.
+
+### Fixed (audit codebase 2026-06-04 — doc/kode disinkronkan + bug nyata)
+- **REST API v1 `/api/v1/qr`**: param tidak valid (mis. `fg=red`, `size=9999`) sekarang balas `400 validation_error` standar, bukan `500` (ganti `qrConfigSchema.parse` → `safeParse`).
+- **Folder integrity**: `DELETE /api/folders/[id]` sekarang mempromosikan sub-folder satu level ke atas (sebelumnya jadi yatim karena `parent_id` tidak punya FK). `PATCH /api/folders/[id]` memvalidasi `parentId` (harus milik workspace, bukan diri sendiri, dan menolak loop).
+- **Cross-workspace integrity**: `POST /api/links/bulk` (move_folder), `PATCH /api/links/[id]`, dan `PATCH /api/v1/links/[id]` kini memvalidasi `folderId` milik workspace (sebelumnya bisa menunjuk folder workspace lain / memicu 500 FK).
+- **Safe Browsing pada update**: `PATCH /api/links/[id]` dan `PATCH /api/v1/links/[id]` kini menjalankan `checkUrlSafety` saat `destinationUrl` berubah (sebelumnya hanya dicek saat create — celah bait-and-switch).
+- **A/B sticky consistency**: ekstraksi client-IP disatukan via `clientIpFromHeaders` (utils) di `[slug]`, `/c/[slug]`, `/p/[slug]` — sebelumnya cloak/password path hanya baca `x-forwarded-for` sehingga variant A/B yang dicatat bisa beda dari yang ditampilkan di balik Cloudflare. Country header pada password gate diselaraskan ke `cf-ipcountry`.
+- **Password gate** kini melewati `recordClick` untuk bot (konsisten dengan path utama; sebelumnya menyisipkan baris klik `is_bot=true`).
+- **Linky Page tracking**: editor preview (`pageId="preview"`) tidak lagi mengirim POST 404 ke `/api/linky-pages/preview/click`. Endpoint click kini no-op untuk halaman draft/unpublished dan memfilter bot — view tidak lagi gampang di-inflate.
+
+### Removed / config
+- Hapus script `db:seed` yang rusak (`scripts/seed.ts` tidak ada).
+- Hapus field `packageManager: pnpm@10.24.0` dari `package.json` (toolchain sebenarnya npm — `package-lock.json`, Docker & CI pakai `npm ci`).
+
+### Docs (disinkronkan dengan kode setelah audit menyeluruh)
+- **README/CLAUDE.md/ARCHITECTURE.md**: koreksi klaim "anonymous shortener" — `/api/shorten` faktanya authed-only, `ANON_DAILY_LIMIT` tidak dipakai, `shorten-form.tsx` dead code. Ditambah catatan "Known gaps" + keputusan re-enable vs hapus.
+- README test count 94 → 119; Postgres adapter "siap" → "eksperimental & belum lengkap".
+- CLAUDE.md: `recordClick` sinkron (bukan async); bot filter memang mengecualikan WhatsApp/Telegram (benar untuk shortener); `parent_id` tanpa FK; tambah `links-browser.tsx`/`workspace.ts`, ganti `utm-recipe-form.tsx`→`utm-recipe-manager.tsx`; build = `next build` (webpack), Turbopack hanya dev.
+- ARCHITECTURE.md: tulis ulang lifecycle §3A (authed-only), perjelas §3B webhook hanya dari `/api/links`, koreksi sketsa test-shim, `hashIp` (salt:ip, truncated 24), glossary "Anonymous link".
+- SESSION-LOG.md state snapshot versi 0.5.3 → 0.5.4.
+
 ## [0.5.4] - 2026-06-04
 
 ### Documentation overhaul (untuk session continuity)

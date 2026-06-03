@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Pencil, Plus, X } from "lucide-react";
 import type { Tag } from "@/lib/db/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ export function TagManager({ initial }: { initial: Tag[] }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#4F46E5");
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; name: string; color: string } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +49,29 @@ export function TagManager({ initial }: { initial: Tag[] }) {
     if (res.ok) {
       setList((prev) => prev.filter((t) => t.id !== id));
       push({ title: "Tag dihapus", variant: "success" });
+    }
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing || savingEdit || !editing.name.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/tags/${editing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editing.name.trim(), color: editing.color }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        push({ title: "Gagal", description: data.error, variant: "danger" });
+        return;
+      }
+      setList((prev) => prev.map((t) => (t.id === data.tag.id ? data.tag : t)));
+      setEditing(null);
+      push({ title: "Tag diperbarui", variant: "success" });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -81,6 +106,48 @@ export function TagManager({ initial }: { initial: Tag[] }) {
         </CardContent>
       </Card>
 
+      {editing && (
+        <Card>
+          <CardContent className="pt-6">
+            <form onSubmit={saveEdit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="tedit">Ubah tag</Label>
+                <Input
+                  id="tedit"
+                  value={editing.name}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                  maxLength={40}
+                  placeholder="nama tag"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Warna</Label>
+                <div className="flex gap-1.5">
+                  {COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setEditing({ ...editing, color: c })}
+                      className={`h-8 w-8 rounded-full border-2 ${editing.color === c ? "border-[color:var(--foreground)]" : "border-transparent"}`}
+                      style={{ background: c }}
+                      aria-label={`Pilih warna ${c}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={savingEdit || !editing.name.trim()}>
+                  Simpan
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+                  Batal
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
       {list.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-[color:var(--muted-foreground)]">
@@ -98,7 +165,14 @@ export function TagManager({ initial }: { initial: Tag[] }) {
                   style={{ background: t.color }}
                 >
                   {t.name}
-                  <button onClick={() => remove(t.id)} aria-label={`Hapus ${t.name}`} className="ml-1 hover:opacity-75">
+                  <button
+                    onClick={() => setEditing({ id: t.id, name: t.name, color: t.color })}
+                    aria-label={`Edit ${t.name}`}
+                    className="ml-1 hover:opacity-75"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button onClick={() => remove(t.id)} aria-label={`Hapus ${t.name}`} className="hover:opacity-75">
                     <X className="h-3 w-3" />
                   </button>
                 </span>

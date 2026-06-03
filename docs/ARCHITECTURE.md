@@ -39,7 +39,8 @@
                   └──────────────────┬──────────────────┘
                                      ▼
         ┌────────────────────────────────────────────────────────┐
-        │  Next.js 15 App (Node 22, App Router, Turbopack)       │
+        │  Next.js 15 App (Node 22, App Router; Turbopack=dev    │
+        │  only, prod `next build` uses webpack)                  │
         │  ┌──────────────────────────────────────────────────┐  │
         │  │  Public surface                                   │  │
         │  │  - Landing /                                      │  │
@@ -112,7 +113,7 @@
   user_id: text FK users(id) ON DELETE CASCADE
   expires_at: timestamp_ms not null
   user_agent: text nullable (max 250 char, populated saat createSession dari headers)
-  ip_hash: text nullable (sha256 dengan AUTH_SECRET sebagai salt)
+  ip_hash: text nullable (sha256(`${AUTH_SECRET}:${ip}`) truncated to 24 hex chars; fallback salt 'linky-default-salt' if AUTH_SECRET unset)
   last_seen_at: timestamp_ms nullable (updated tiap request via getSessionUser)
   created_at, updated_at: timestamp_ms
 }
@@ -149,7 +150,7 @@
 ### `folders` & `tags`
 ```typescript
 folders: {
-  id, workspace_id, parent_id (self-FK untuk nested), name, color (#hex), timestamps
+  id, workspace_id, parent_id (nullable, indexed; logical self-reference, NO DB FK constraint — integrity enforced in app code), name, color (#hex), timestamps
 }
 tags: {
   id, workspace_id, name, color, timestamps
@@ -291,30 +292,31 @@ LinkyPageBlock {
 
 ## 3. Request Lifecycles
 
-### A. Anonymous shorten (landing page)
+### A. Quick shorten via `/api/shorten` (authed-only — NOT anonymous)
+
+> ⚠️ **Reality check (2026-06-04 audit):** Despite the name, `/api/shorten` is authenticated-only. The "anonymous" design below was never wired: `getSessionUser()` is required (401 otherwise), `ANON_DAILY_LIMIT` is never read, `is_anonymous`/`anon_owner_ip` are hardcoded `false`/`null`, and the landing page does not render `shorten-form.tsx`. See CLAUDE.md → Roadmap → "DITOLAK" (anonymous shorten is intentionally login-only).
 
 ```
 1. Browser POSTs /api/shorten { destinationUrl, customSlug? }
 2. Route handler:
-   - getClientIp() → hash with AUTH_SECRET
-   - Check anon_daily_limit (count links WHERE anon_owner_ip = hash AND created_at > 24h ago)
+   - getSessionUser() → 401 "Silakan masuk dulu..." if no session  (AUTHED-ONLY)
+   - ensureWorkspace(user.id)
    - validate Zod shortenAnonSchema
    - normalizeUrl + isValidUrl
-   - checkUrlSafety() → if malicious, reject
-   - generateSlug or validate customSlug
-   - INSERT links { is_anonymous: true, anon_owner_ip: hash, workspace_id: null }
-   - return { shortUrl, slug, destinationUrl }
-3. Client displays card with copy button + "Save forever? [Email]" CTA
+   - checkUrlSafety() → if malicious, reject 422
+   - generateSlug or validate customSlug (scoped to domain_id IS NULL)
+   - INSERT links { is_anonymous: false, anon_owner_ip: null, workspace_id: <personal ws> }
+   - return { id, slug }            // NOTE: does NOT fire link.created webhook
 ```
 
-### B. Authenticated shorten (dashboard)
+### B. Authenticated create via `POST /api/links` (dashboard create form)
 
-Similar to anon but:
-- getSessionUser() required
-- ensureWorkspace() to get workspace
+This is the full-featured create path (distinct from `/api/shorten` above):
+- getSessionUser() required + ensureWorkspace()
 - workspace_id populated, is_anonymous: false
 - Optional fields (folder, tag, password, expires, UTM, OG, deep link, cloak) from form
-- After create: fireWebhooks(workspaceId, 'link.created', {...})
+- checkUrlSafety() on the destination
+- After create: **fireWebhooks(workspaceId, 'link.created', {...})** ← only this path fires the webhook; `/api/shorten` does not.
 
 ### C. Redirect hot path (most critical)
 
@@ -390,7 +392,7 @@ File: `src/app/api/v1/links/route.ts`
 1. sessionId = nanoid(32)
 2. expiresAt = now + 30 days
 3. Try to get request headers (userAgent, IP)
-4. ipHash = sha256(ip + AUTH_SECRET)
+4. ipHash = sha256(`${AUTH_SECRET}:${ip}`).slice(0,24)   // truncated; fallback salt 'linky-default-salt'
 5. INSERT INTO sessions { id, user_id, expires_at, user_agent, ip_hash, last_seen_at: now }
 6. token = SignJWT({ sid: sessionId, uid: userId }).HS256(AUTH_SECRET)
 7. Set httpOnly cookie 'linky_session' with token
@@ -831,14 +833,15 @@ CSS variables defined in `globals.css` with `@theme`. Dark variant via `.dark` c
 
 ```typescript
 // src/lib/test-shim.ts
-// Maps vitest-style API to node:test
-export { describe, it } from 'node:test';
-export const expect = (actual) => ({
-  toBe, toEqual, toBeNull, toBeUndefined, toBeTruthy, toBeFalsy,
-  toBeGreaterThan, toBeLessThan, toContain,
-  toThrow, // wraps with assert.throws
-  not: { toBe, toEqual, ... }
-});
+// Maps a vitest-style API onto node:test (assertions via node:assert/strict)
+export { describe, it, test } from 'node:test';     // it/test both exported
+export { before as beforeAll, beforeEach } from 'node:test';
+// expect(actual) returns an ExpectMatcher CLASS instance with:
+//   toBe, toEqual, toContain, toMatch, toHaveLength, toBeDefined,
+//   toBeNull, toBeUndefined, toBeGreaterThan, toBeLessThan, toBeTruthy, toBeFalsy
+//   .not (negation), .resolves, .rejects (async)
+// NOTE: there is NO synchronous toThrow — only async `await expect(p).rejects...`.
+// NOT provided: vi.fn/spyOn mocks, toBeCloseTo, afterEach/afterAll.
 ```
 
 **Current count:** 119 tests across 13 files. All pass.
@@ -984,7 +987,7 @@ Make sure `getSessionUser()` does the DB lookup. JWT-only check would allow revo
 
 - **Workspace** — Container for links/tags/folders/pages. 1:1 with user (single-user product).
 - **Slug** — short identifier in URL (`/promo` → slug = "promo"). Reserved words enforced by `isValidSlug`.
-- **Anonymous link** — created without signup. Limited daily per IP. Stored with `is_anonymous: true`.
+- **Anonymous link** — *designed* to be created without signup (daily per-IP limit, `is_anonymous: true`), but **NOT implemented** in current code: `/api/shorten` is authed-only and nothing ever sets `is_anonymous: true`. The `is_anonymous`/`anon_owner_ip` columns are vestigial. See CLAUDE.md → Roadmap → "DITOLAK" (anonymous shorten is intentionally login-only).
 - **Cloak** — show short URL in address bar instead of destination (uses iframe via `/c/<slug>`).
 - **Linky Page** — link-in-bio page, like Linktree. Path `/u/<username>`.
 - **Branded QR** — QR with logo/colors/gradient/frame (not basic monochrome).
