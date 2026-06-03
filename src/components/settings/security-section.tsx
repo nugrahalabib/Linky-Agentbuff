@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { Laptop, LogOut, Monitor, Smartphone, Tablet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
 
 interface SessionRow {
@@ -35,11 +33,6 @@ function DeviceIcon({ device }: { device: string }) {
 
 export function SecuritySection() {
   const { push } = useToast();
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [busy, setBusy] = useState(false);
-
   const [sessions, setSessions] = useState<SessionRow[] | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
 
@@ -60,41 +53,7 @@ export function SecuritySection() {
     loadSessions();
   }, []);
 
-  const changePassword = async () => {
-    if (next !== confirm) {
-      push({ title: "Konfirmasi tidak cocok", variant: "danger" });
-      return;
-    }
-    setBusy(true);
-    try {
-      const res = await fetch("/api/auth/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword: current, newPassword: next }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        push({ title: "Gagal ganti sandi", description: data.error, variant: "danger" });
-        return;
-      }
-      setCurrent("");
-      setNext("");
-      setConfirm("");
-      push({
-        title: "Kata sandi diperbarui",
-        description: "Sesi lain otomatis di-logout.",
-        variant: "success",
-      });
-      loadSessions();
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const revoke = async (id: string) => {
-    if (!confirm.length && !window.confirm("Logout sesi ini?")) {
-      // dummy use of confirm to avoid unused var warning when modal closed
-    }
     if (!window.confirm("Logout sesi ini?")) return;
     const res = await fetch(`/api/auth/sessions/${id}`, { method: "DELETE" });
     if (res.ok) {
@@ -117,34 +76,15 @@ export function SecuritySection() {
     <Card>
       <CardHeader>
         <CardTitle>Keamanan</CardTitle>
-        <CardDescription>Ubah kata sandi dan kelola sesi aktif.</CardDescription>
+        <CardDescription>Login pakai Google. Kelola sesi aktif di sini.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wider text-[color:var(--muted-foreground)]">
-            Ganti kata sandi
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cp">Kata sandi saat ini</Label>
-            <Input id="cp" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="np">Kata sandi baru</Label>
-            <Input id="np" type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" placeholder="Min 8 karakter" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cf">Konfirmasi kata sandi baru</Label>
-            <Input id="cf" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
-          </div>
-          <Button onClick={changePassword} disabled={busy || !current || next.length < 8 || next !== confirm}>
-            {busy ? "Menyimpan..." : "Ubah kata sandi"}
-          </Button>
-          <p className="text-[11px] text-[color:var(--muted-foreground)]">
-            Setelah ubah, semua sesi lain akan otomatis di-logout untuk keamanan.
-          </p>
+        <div className="rounded-[10px] border border-[color:var(--border)] bg-[color:var(--muted)]/40 p-3 text-sm text-[color:var(--muted-foreground)]">
+          Akun ini login lewat <strong className="text-[color:var(--foreground)]">Google</strong>. Tidak ada kata
+          sandi yang disimpan — keamanan login dikelola oleh penyedia identitasmu.
         </div>
 
-        <div className="border-t border-[color:var(--border)] pt-6 space-y-3">
+        <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-[color:var(--muted-foreground)]">

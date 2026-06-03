@@ -359,6 +359,15 @@ const MIGRATIONS = [
       ALTER TABLE sessions ADD COLUMN last_seen_at INTEGER;
     `,
   },
+  {
+    id: "0012_oauth_identity",
+    sql: `
+      ALTER TABLE users ADD COLUMN image TEXT;
+      ALTER TABLE users ADD COLUMN oauth_provider TEXT;
+      ALTER TABLE users ADD COLUMN oauth_subject TEXT;
+      CREATE UNIQUE INDEX IF NOT EXISTS users_oauth_idx ON users(oauth_provider, oauth_subject);
+    `,
+  },
 ];
 
 function ensureDir(filePath: string): void {
