@@ -130,7 +130,11 @@ Gunakan Caddy/Nginx untuk TLS + reverse proxy ke `:1709`.
 
 Next.js 15 (App Router, React 19) · TypeScript strict · Drizzle ORM · SQLite (Postgres-ready) · Tailwind CSS v4 · Radix UI · Recharts · `qrcode` · Zod · `bcryptjs` + `jose` (JWT) · `pino` · `ioredis` (graceful) · GitHub Actions CI
 
-Lihat [CLAUDE.md](./CLAUDE.md) untuk konvensi codebase + struktur folder lengkap.
+**Dokumentasi internal lengkap:**
+- [CLAUDE.md](./CLAUDE.md) — master onboarding (konvensi, struktur, workflow)
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — deep technical reference (data model, request lifecycles, REST API, webhooks, performance)
+- [docs/SESSION-LOG.md](./docs/SESSION-LOG.md) — session timeline + decisions log + audit trail
+- [CHANGELOG.md](./CHANGELOG.md) — release notes per versi
 
 ## Roadmap
 

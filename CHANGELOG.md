@@ -5,6 +5,40 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-06-04
+
+### Documentation overhaul (untuk session continuity)
+- **CLAUDE.md** ditulis ulang total sebagai master onboarding doc — TL;DR, Quickstart, lingkungan khusus Windows App Control, arsitektur tingkat tinggi, struktur folder lengkap, data model 12 migrations, konvensi code (server vs client, error handling, validation, tests, UI tone), REST API surface, webhooks, redirect hot path, CSV import, settings page, auth & security, env vars, scripts, CI/CD, production deploy, roadmap, workflow untuk sesi baru, filosofi & tone, anti-patterns. Target: sesi baru bisa langsung lanjut tanpa kembali ke sesi sebelumnya.
+- **docs/ARCHITECTURE.md** baru — deep technical reference 16 section:
+  1. System overview dengan diagram
+  2. Setiap tabel DB dijelaskan (kolom, indices, foreign keys)
+  3. Request lifecycles (anon shorten, authed shorten, redirect hot path, password gate, API v1 create)
+  4. Authentication & authorization (session flow, API key validation, workspace isolation)
+  5. REST API v1 internal design (response format, code stability, rate limit headers, CORS, serializer)
+  6. Webhook delivery system (fire flow, deliverOne, receiver verification, retry policy)
+  7. CSV import pipeline (parseCsv detection, autoMap, detectProvider, endpoint flow, UI wizard)
+  8. Analytics & click tracking
+  9. QR code generation
+  10. Linky Pages (link-in-bio)
+  11. Safe Browsing & anti-abuse
+  12. Frontend patterns
+  13. Testing infrastructure
+  14. Performance targets & bottlenecks
+  15. Deployment topology (self-host VPS, Vercel, CF Workers future)
+  16. Migration strategy SQLite → Postgres
+- **docs/SESSION-LOG.md** baru — comprehensive session timeline April-June 2026 dengan:
+  - State snapshot
+  - Konteks user (profil, preferensi, cara feedback, anti-patterns)
+  - Timeline chronological dari awal MVP ke v0.5.3
+  - Audit trail (cross-workspace pen-test, rate limit verification, webhook signature E2E, settings destructive ops, CSV import Bit.ly format, deep link swap fix)
+  - Decisions log (mengapa SQLite, mengapa node:test, mengapa single-user, mengapa port 1709, dll.)
+  - Known issues / TODOs
+  - Anti-patterns yang pernah ditemui
+  - Workflow resume untuk sesi berikutnya
+
+### Changed
+- Bump version 0.5.3 → 0.5.4 untuk track docs release
+
 ## [0.5.3] - 2026-04-26
 
 ### Fixed (CSV Import bugs nyata)
