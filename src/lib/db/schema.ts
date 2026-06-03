@@ -15,13 +15,21 @@ export const users = sqliteTable(
   {
     id: text("id").primaryKey(),
     email: text("email").notNull(),
+    // Legacy/unused for login (password login removed → Google OAuth). Stays NOT NULL at the DB
+    // level (SQLite can't drop NOT NULL without a risky table rebuild); OAuth users get "".
     passwordHash: text("password_hash").notNull(),
     name: text("name"),
+    image: text("image"),
+    oauthProvider: text("oauth_provider"),
+    oauthSubject: text("oauth_subject"),
     emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
     locale: text("locale").notNull().default("id"),
     ...timestamps,
   },
-  (t) => [uniqueIndex("users_email_idx").on(t.email)],
+  (t) => [
+    uniqueIndex("users_email_idx").on(t.email),
+    uniqueIndex("users_oauth_idx").on(t.oauthProvider, t.oauthSubject),
+  ],
 );
 
 export const safeBrowsingCache = sqliteTable(

@@ -1,12 +1,12 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies, headers } from "next/headers";
 import { nanoid } from "nanoid";
-import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { sessions, users, workspaces, type Session, type User } from "@/lib/db/schema";
 import { getActiveWorkspace as resolveActiveWorkspace } from "@/lib/workspace";
 import { hashIp } from "@/lib/hash";
+import type { OAuthProfile } from "@/lib/oauth";
 
 const SESSION_COOKIE = "linky_session";
 const SESSION_DAYS = 30;
@@ -19,12 +19,53 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(s);
 }
 
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
-}
+/**
+ * Resolve (or create) a local user from an OAuth profile. Matching order:
+ * 1) by (provider, subject) — the stable identity, 2) by email — links an existing account to
+ * the OAuth identity, 3) create a fresh user. Password login is removed, so new users get an
+ * empty password_hash (column is legacy/NOT NULL at the DB level).
+ */
+export async function findOrCreateOAuthUser(provider: string, profile: OAuthProfile): Promise<User> {
+  const bySubject = db
+    .select()
+    .from(users)
+    .where(and(eq(users.oauthProvider, provider), eq(users.oauthSubject, profile.subject)))
+    .get();
+  if (bySubject) return bySubject;
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  if (profile.email) {
+    const byEmail = db.select().from(users).where(eq(users.email, profile.email)).get();
+    if (byEmail) {
+      db.update(users)
+        .set({
+          oauthProvider: provider,
+          oauthSubject: profile.subject,
+          image: byEmail.image ?? profile.image,
+          name: byEmail.name ?? profile.name,
+          emailVerifiedAt: byEmail.emailVerifiedAt ?? (profile.emailVerified ? new Date() : null),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, byEmail.id))
+        .run();
+      return db.select().from(users).where(eq(users.id, byEmail.id)).get() as User;
+    }
+  }
+
+  const id = nanoid(14);
+  db.insert(users)
+    .values({
+      id,
+      email: profile.email,
+      passwordHash: "", // password login removed; OAuth users have no password
+      name: profile.name,
+      image: profile.image,
+      oauthProvider: provider,
+      oauthSubject: profile.subject,
+      emailVerifiedAt: profile.emailVerified ? new Date() : null,
+      locale: "id",
+    })
+    .run();
+  return db.select().from(users).where(eq(users.id, id)).get() as User;
 }
 
 async function signSessionToken(sessionId: string, userId: string, expSec: number): Promise<string> {

@@ -1,32 +1,11 @@
 import { z } from "zod";
 
-export const signupSchema = z.object({
-  email: z.string().email("Email tidak valid").max(200),
-  password: z.string().min(8, "Minimal 8 karakter").max(200),
-  name: z.string().max(100).optional(),
-});
-export type SignupInput = z.infer<typeof signupSchema>;
-
-export const loginSchema = z.object({
-  email: z.string().email("Email tidak valid").max(200),
-  password: z.string().min(1, "Kata sandi wajib diisi").max(200),
-});
-export type LoginInput = z.infer<typeof loginSchema>;
+// Login is Google OAuth-only — no signup/login/change-password schemas (see src/lib/oauth.ts).
 
 export const updateProfileSchema = z.object({
   name: z.string().max(100).optional(),
   locale: z.enum(["id", "en"]).optional(),
 });
-
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Kata sandi saat ini wajib diisi"),
-    newPassword: z.string().min(8, "Minimal 8 karakter").max(200),
-  })
-  .refine((d) => d.currentPassword !== d.newPassword, {
-    message: "Kata sandi baru harus berbeda dari yang lama.",
-    path: ["newPassword"],
-  });
 
 export const updateWorkspaceSchema = z.object({
   name: z.string().min(1, "Nama tidak boleh kosong").max(80).optional(),
@@ -39,7 +18,6 @@ export const updateWorkspaceSchema = z.object({
 });
 
 export const deleteAccountSchema = z.object({
-  password: z.string().min(1),
   confirmEmail: z.string().email(),
 });
 

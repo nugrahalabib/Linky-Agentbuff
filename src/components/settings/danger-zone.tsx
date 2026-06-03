@@ -22,7 +22,6 @@ export function DangerZone({ workspaceName, email }: Props) {
   const [wiping, setWiping] = useState(false);
 
   const [delEmail, setDelEmail] = useState("");
-  const [delPassword, setDelPassword] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   const wipeLinks = async () => {
@@ -49,7 +48,7 @@ export function DangerZone({ workspaceName, email }: Props) {
   };
 
   const deleteAccount = async () => {
-    if (delEmail.trim().toLowerCase() !== email.toLowerCase() || !delPassword) return;
+    if (delEmail.trim().toLowerCase() !== email.toLowerCase()) return;
     if (
       !window.confirm(
         "BENERAN hapus akun + SEMUA data permanen? Workspace, link, analitik, Linky Pages, API key, webhook — semua hilang. Tidak bisa di-undo.",
@@ -61,7 +60,7 @@ export function DangerZone({ workspaceName, email }: Props) {
       const res = await fetch("/api/account", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: delPassword, confirmEmail: delEmail }),
+        body: JSON.stringify({ confirmEmail: delEmail }),
       });
       const d = await res.json();
       if (!res.ok) {
@@ -133,24 +132,10 @@ export function DangerZone({ workspaceName, email }: Props) {
               autoComplete="off"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="delpass">Kata sandi akunmu</Label>
-            <Input
-              id="delpass"
-              type="password"
-              value={delPassword}
-              onChange={(e) => setDelPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </div>
           <Button
             variant="danger"
             onClick={deleteAccount}
-            disabled={
-              deleting ||
-              delEmail.trim().toLowerCase() !== email.toLowerCase() ||
-              !delPassword
-            }
+            disabled={deleting || delEmail.trim().toLowerCase() !== email.toLowerCase()}
           >
             <Trash2 className="h-4 w-4" />
             {deleting ? "Menghapus..." : "Hapus akun permanen"}
