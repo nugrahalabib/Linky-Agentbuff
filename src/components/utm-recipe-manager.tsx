@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Info, Plus, Trash2, Zap } from "lucide-react";
+import { ArrowRight, Info, Pencil, Plus, Trash2, Zap } from "lucide-react";
 import type { UtmRecipe } from "@/lib/db/schema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,9 @@ export function UtmRecipeManager({ initial }: { initial: UtmRecipe[] }) {
     utmContent: "",
   });
   const [loading, setLoading] = useState(false);
+  const emptyEdit = { id: "", name: "", utmSource: "", utmMedium: "", utmCampaign: "", utmTerm: "", utmContent: "" };
+  const [editing, setEditing] = useState<typeof emptyEdit | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fill = (p: (typeof PRESETS)[number]) => {
     setForm((f) => ({ ...f, name: p.name, utmSource: p.utm_source, utmMedium: p.utm_medium }));
@@ -65,6 +68,42 @@ export function UtmRecipeManager({ initial }: { initial: UtmRecipe[] }) {
     if (res.ok) {
       setList((prev) => prev.filter((r) => r.id !== id));
       push({ title: "Recipe dihapus", variant: "success" });
+    }
+  };
+
+  const startEdit = (r: UtmRecipe) => {
+    setEditing({
+      id: r.id,
+      name: r.name,
+      utmSource: r.utmSource ?? "",
+      utmMedium: r.utmMedium ?? "",
+      utmCampaign: r.utmCampaign ?? "",
+      utmTerm: r.utmTerm ?? "",
+      utmContent: r.utmContent ?? "",
+    });
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing || savingEdit || !editing.name.trim()) return;
+    setSavingEdit(true);
+    try {
+      const { id, ...payload } = editing;
+      const res = await fetch(`/api/utm-recipes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        push({ title: "Gagal", description: data.error, variant: "danger" });
+        return;
+      }
+      setList((prev) => prev.map((r) => (r.id === data.recipe.id ? data.recipe : r)));
+      setEditing(null);
+      push({ title: "Recipe diperbarui", variant: "success" });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -147,6 +186,49 @@ export function UtmRecipeManager({ initial }: { initial: UtmRecipe[] }) {
         </CardContent>
       </Card>
 
+      {editing && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ubah recipe</CardTitle>
+            <CardDescription>Perbarui nama atau parameter UTM.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={saveEdit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="ename">Nama recipe <span className="text-red-500">*</span></Label>
+                <Input id="ename" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} maxLength={80} />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="esource">Source</Label>
+                  <Input id="esource" value={editing.utmSource} onChange={(e) => setEditing({ ...editing, utmSource: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="emedium">Medium</Label>
+                  <Input id="emedium" value={editing.utmMedium} onChange={(e) => setEditing({ ...editing, utmMedium: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ecamp">Campaign</Label>
+                  <Input id="ecamp" value={editing.utmCampaign} onChange={(e) => setEditing({ ...editing, utmCampaign: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="eterm">Term</Label>
+                  <Input id="eterm" value={editing.utmTerm} onChange={(e) => setEditing({ ...editing, utmTerm: e.target.value })} />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="econtent">Content</Label>
+                  <Input id="econtent" value={editing.utmContent} onChange={(e) => setEditing({ ...editing, utmContent: e.target.value })} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={savingEdit || !editing.name.trim()}>Simpan</Button>
+                <Button type="button" variant="ghost" onClick={() => setEditing(null)}>Batal</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
       {list.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-[color:var(--muted-foreground)]">
@@ -167,9 +249,14 @@ export function UtmRecipeManager({ initial }: { initial: UtmRecipe[] }) {
                         .join(" · ")}
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => remove(r.id)} aria-label="Hapus">
-                    <Trash2 className="h-4 w-4 text-[color:var(--danger)]" />
-                  </Button>
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => startEdit(r)} aria-label="Edit">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => remove(r.id)} aria-label="Hapus">
+                      <Trash2 className="h-4 w-4 text-[color:var(--danger)]" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="mt-3 flex gap-2">
                   <Button asChild size="sm" variant="gradient" className="flex-1">

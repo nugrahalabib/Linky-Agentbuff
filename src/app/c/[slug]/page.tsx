@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { resolveLinkBySlug, checkLinkStatus, pickTargetUrl } from "@/lib/resolve-link";
+import { clientIpFromHeaders } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function CloakPage({ params }: { params: Promise<{ slug: st
   const h = await headers();
   const ua = h.get("user-agent");
   const country = h.get("cf-ipcountry") ?? h.get("x-vercel-ip-country");
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+  const ip = clientIpFromHeaders((k) => h.get(k));
   const picked = pickTargetUrl(link, ua, country, ip);
   const target = picked.url;
 

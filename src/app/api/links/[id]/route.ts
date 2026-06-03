@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { links } from "@/lib/db/schema";
+import { folders, links } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 import { updateLinkSchema } from "@/lib/validators";
 import { isValidUrl, normalizeUrl } from "@/lib/utils";
+import { checkUrlSafety } from "@/lib/safe-browsing";
 import { fireWebhooks } from "@/lib/webhooks";
 
 async function loadOwned(id: string) {
@@ -46,13 +47,34 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof data.destinationUrl === "string") {
     const u = normalizeUrl(data.destinationUrl);
     if (!isValidUrl(u)) return NextResponse.json({ error: "URL tujuan tidak valid." }, { status: 400 });
+    if (u !== r.link.destinationUrl) {
+      const safety = await checkUrlSafety(u);
+      if (safety.verdict === "malicious") {
+        return NextResponse.json(
+          { error: "URL tujuan terdeteksi berbahaya (phishing/malware).", threats: safety.threatTypes },
+          { status: 422 },
+        );
+      }
+    }
     patch.destinationUrl = u;
   }
   if (typeof data.title === "string") patch.title = data.title;
   if (typeof data.description === "string") patch.description = data.description;
   if (typeof data.archived === "boolean") patch.archived = data.archived;
   if (typeof data.cloak === "boolean") patch.cloak = data.cloak;
-  if (data.folderId !== undefined) patch.folderId = data.folderId || null;
+  if (data.folderId !== undefined) {
+    if (data.folderId) {
+      const folder = db
+        .select({ id: folders.id })
+        .from(folders)
+        .where(and(eq(folders.id, data.folderId), eq(folders.workspaceId, r.workspace.id)))
+        .get();
+      if (!folder) return NextResponse.json({ error: "Folder tidak ditemukan." }, { status: 400 });
+      patch.folderId = data.folderId;
+    } else {
+      patch.folderId = null;
+    }
+  }
   if (data.clearPassword) patch.passwordHash = null;
   else if (typeof data.password === "string" && data.password.length > 0) {
     patch.passwordHash = await bcrypt.hash(data.password, 10);

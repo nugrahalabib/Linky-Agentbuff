@@ -26,6 +26,65 @@ const SUSPICIOUS_TLDS = new Set(["zip", "mov", "country", "kim", "work", "suppor
 const PHISHING_KEYWORDS = ["wp-admin", "login", "signin", "verify", "secure", "account", "update"];
 const HOMOGRAPH_RE = /[ɐ-ʯͰ-ϿЀ-ӿ֐-׿؀-ۿ]/;
 
+function isInternalIpv4(ip: string): boolean {
+  const parts = ip.split(".").map((p) => Number(p));
+  if (parts.length !== 4 || parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)) return false;
+  const [a, b] = parts;
+  if (a === 0) return true; // 0.0.0.0/8
+  if (a === 127) return true; // loopback 127.0.0.0/8
+  if (a === 10) return true; // private
+  if (a === 169 && b === 254) return true; // link-local + cloud metadata 169.254.0.0/16
+  if (a === 192 && b === 168) return true; // private
+  if (a === 172 && b >= 16 && b <= 31) return true; // private
+  return false;
+}
+
+/**
+ * True if a hostname points at a loopback/private/link-local/metadata target.
+ * Handles IPv6 ([::1], fc00::/7 ULA, fe80::/10 link-local), full 127.0.0.0/8 and 0.0.0.0,
+ * and decimal/hex integer IPv4 encodings (e.g. 2130706433, 0x7f000001 = 127.0.0.1).
+ * Note: does NOT resolve DNS — a public name resolving to a private IP (DNS rebinding) is not caught.
+ */
+export function isInternalHost(hostname: string): boolean {
+  let host = hostname.toLowerCase().trim();
+  if (host.startsWith("[") && host.endsWith("]")) host = host.slice(1, -1); // strip IPv6 brackets
+
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host === "::" || host === "::1" || host === "0.0.0.0") return true;
+  if (/^f[cd][0-9a-f]*:/.test(host)) return true; // fc00::/7 unique-local
+  if (/^fe[89ab][0-9a-f]*:/.test(host)) return true; // fe80::/10 link-local
+
+  if (/^\d+$/.test(host)) {
+    const n = Number(host);
+    if (Number.isFinite(n) && n >= 0 && n <= 0xffffffff) {
+      return isInternalIpv4([(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join("."));
+    }
+  }
+  if (/^0x[0-9a-f]+$/.test(host)) {
+    const n = parseInt(host, 16);
+    if (Number.isFinite(n) && n >= 0 && n <= 0xffffffff) {
+      return isInternalIpv4([(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join("."));
+    }
+  }
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return isInternalIpv4(host);
+
+  return false;
+}
+
+/**
+ * True if a URL is unsafe to fetch server-side: non-http(s) scheme, unparseable, or an internal host.
+ * Used to block SSRF via user-supplied webhook URLs.
+ */
+export function isUnsafeRequestUrl(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return true;
+    return isInternalHost(u.hostname);
+  } catch {
+    return true;
+  }
+}
+
 function heuristicCheck(url: string): { verdict: Verdict; reasons: string[] } {
   const reasons: string[] = [];
   let verdict: Verdict = "safe";
@@ -44,12 +103,8 @@ function heuristicCheck(url: string): { verdict: Verdict; reasons: string[] } {
       verdict = "suspicious";
     }
 
-    // Internal/private IPs blocked
-    if (
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(host)
-    ) {
+    // Internal/private/loopback/link-local/metadata hosts blocked (IPv4/IPv6 + numeric encodings)
+    if (isInternalHost(host)) {
       reasons.push("internal_ip");
       verdict = "malicious";
     }

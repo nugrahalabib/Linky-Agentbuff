@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { webhooks } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
+import { isUnsafeRequestUrl } from "@/lib/safe-browsing";
 
 const createSchema = z.object({
   url: z.string().url(),
@@ -32,6 +33,9 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+  if (isUnsafeRequestUrl(parsed.data.url)) {
+    return NextResponse.json({ error: "URL webhook tidak boleh menunjuk ke alamat internal/lokal." }, { status: 400 });
+  }
 
   const id = nanoid(14);
   const secret = `whsec_${crypto.randomBytes(20).toString("base64url")}`;

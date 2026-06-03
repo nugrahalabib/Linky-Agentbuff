@@ -1,8 +1,8 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { links } from "@/lib/db/schema";
+import { linkTags, links, tags as tagsTable } from "@/lib/db/schema";
 import { generateSlug, isValidSlug } from "@/lib/slug";
 import { createLinkSchema } from "@/lib/validators";
 import { getFaviconUrl, hostOf, isValidUrl, normalizeUrl } from "@/lib/utils";
@@ -109,6 +109,19 @@ export async function POST(req: Request) {
       createdBy: a.auth.key.userId,
     })
     .run();
+
+  // Persist tags (workspace-scoped so a key can't attach another workspace's tags).
+  if (parsed.data.tagIds && parsed.data.tagIds.length > 0) {
+    const validTagIds = db
+      .select({ id: tagsTable.id })
+      .from(tagsTable)
+      .where(and(eq(tagsTable.workspaceId, a.auth.workspace.id), inArray(tagsTable.id, parsed.data.tagIds)))
+      .all()
+      .map((t) => t.id);
+    for (const tagId of validTagIds) {
+      db.insert(linkTags).values({ linkId: id, tagId }).run();
+    }
+  }
 
   const created = db.select().from(links).where(eq(links.id, id)).get();
   if (created) {

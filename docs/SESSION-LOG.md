@@ -8,7 +8,7 @@
 
 | Item | Nilai |
 |---|---|
-| Versi | **0.5.3** |
+| Versi | **0.5.4** |
 | Branch | `main` (sinkron dengan `origin/main`) |
 | Working tree | Clean |
 | Total commit di sesi ini | 6 commit (semua sudah di-push) |

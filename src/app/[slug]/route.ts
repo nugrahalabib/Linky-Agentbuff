@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
 import { resolveLinkBySlug, checkLinkStatus, pickTargetUrl } from "@/lib/resolve-link";
 import { recordClick, isBot } from "@/lib/clicks";
+import { clientIpFromHeaders } from "@/lib/utils";
 
 function getClientIp(req: Request): string {
-  const h = req.headers;
-  return (
-    h.get("cf-connecting-ip") ??
-    h.get("x-real-ip") ??
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "0.0.0.0"
-  );
+  return clientIpFromHeaders((k) => req.headers.get(k));
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {

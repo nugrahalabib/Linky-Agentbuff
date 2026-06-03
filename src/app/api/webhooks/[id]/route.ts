@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { webhooks } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
+import { isUnsafeRequestUrl } from "@/lib/safe-browsing";
 
 const patchSchema = z.object({
   active: z.boolean().optional(),
@@ -21,6 +22,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await req.json().catch(() => null);
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+  if (parsed.data.url && isUnsafeRequestUrl(parsed.data.url)) {
+    return NextResponse.json({ error: "URL webhook tidak boleh menunjuk ke alamat internal/lokal." }, { status: 400 });
+  }
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.active !== undefined) patch.active = parsed.data.active;
   if (parsed.data.events) patch.events = parsed.data.events;

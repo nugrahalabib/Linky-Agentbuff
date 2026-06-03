@@ -1,9 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { links } from "@/lib/db/schema";
+import { folders, linkTags, links, tags as tagsTable } from "@/lib/db/schema";
 import { updateLinkSchema } from "@/lib/validators";
 import { isValidUrl, normalizeUrl } from "@/lib/utils";
+import { checkUrlSafety } from "@/lib/safe-browsing";
 import { apiError, apiOk, apiOptions, readJson, withApiAuth, type AuthedRequest } from "@/lib/api-helpers";
 import { fireWebhooks } from "@/lib/webhooks";
 import { serializeLink } from "@/lib/api-serializers";
@@ -47,13 +48,31 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof data.destinationUrl === "string") {
     const u = normalizeUrl(data.destinationUrl);
     if (!isValidUrl(u)) return apiError("invalid_url", "destinationUrl invalid.", 400, a.auth.rateHeaders);
+    if (u !== link.destinationUrl) {
+      const safety = await checkUrlSafety(u);
+      if (safety.verdict === "malicious") {
+        return apiError("unsafe_url", "destinationUrl flagged sebagai phishing/malware.", 422, a.auth.rateHeaders);
+      }
+    }
     patch.destinationUrl = u;
   }
   if (typeof data.title === "string") patch.title = data.title;
   if (typeof data.description === "string") patch.description = data.description;
   if (typeof data.archived === "boolean") patch.archived = data.archived;
   if (typeof data.cloak === "boolean") patch.cloak = data.cloak;
-  if (data.folderId !== undefined) patch.folderId = data.folderId || null;
+  if (data.folderId !== undefined) {
+    if (data.folderId) {
+      const folder = db
+        .select({ id: folders.id })
+        .from(folders)
+        .where(and(eq(folders.id, data.folderId), eq(folders.workspaceId, a.auth.workspace.id)))
+        .get();
+      if (!folder) return apiError("not_found", "Folder tidak ditemukan.", 404, a.auth.rateHeaders);
+      patch.folderId = data.folderId;
+    } else {
+      patch.folderId = null;
+    }
+  }
   if (data.clearPassword) patch.passwordHash = null;
   else if (typeof data.password === "string" && data.password.length > 0) {
     patch.passwordHash = await bcrypt.hash(data.password, 10);
@@ -75,6 +94,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     patch.utmParams = utm;
   }
   db.update(links).set(patch).where(eq(links.id, id)).run();
+  // Replace tags when tagIds is provided (workspace-scoped); omitting tagIds leaves tags unchanged.
+  if (data.tagIds !== undefined) {
+    db.delete(linkTags).where(eq(linkTags.linkId, id)).run();
+    if (data.tagIds.length > 0) {
+      const validTagIds = db
+        .select({ id: tagsTable.id })
+        .from(tagsTable)
+        .where(and(eq(tagsTable.workspaceId, a.auth.workspace.id), inArray(tagsTable.id, data.tagIds)))
+        .all()
+        .map((t) => t.id);
+      for (const tagId of validTagIds) {
+        db.insert(linkTags).values({ linkId: id, tagId }).run();
+      }
+    }
+  }
   const updated = db.select().from(links).where(eq(links.id, id)).get();
   if (updated) {
     fireWebhooks(a.auth.workspace.id, "link.updated", {

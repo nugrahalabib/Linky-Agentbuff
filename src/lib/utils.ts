@@ -35,6 +35,21 @@ export function relativeTime(ts: number | string | Date, locale = "id"): string 
   return rtf.format(-Math.floor(diff / 31_536_000), "year");
 }
 
+/**
+ * Canonical client-IP resolution shared by every request path (redirect hot path,
+ * cloak page, password gate, auth, abuse reports). Keeping one chain ensures the A/B
+ * sticky hash, geo targeting, and ip_hash are identical regardless of which path serves
+ * the request. `get` is the header accessor (e.g. (k) => req.headers.get(k)).
+ */
+export function clientIpFromHeaders(get: (key: string) => string | null | undefined): string {
+  return (
+    get("cf-connecting-ip") ??
+    get("x-real-ip") ??
+    get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "0.0.0.0"
+  );
+}
+
 export function isValidUrl(input: string): boolean {
   try {
     const url = new URL(input);

@@ -16,6 +16,21 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
+    // Report-only CSP: observes violations without blocking (safe to ship; tune before enforcing —
+    // note /c/[slug] cloak renders external iframes, so frame-src is permissive).
+    const csp = [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "img-src 'self' data: https:",
+      "style-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "frame-src 'self' https:",
+      "frame-ancestors 'self'",
+      "form-action 'self'",
+    ].join("; ");
     return [
       {
         source: "/:path*",
@@ -25,6 +40,9 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // HSTS: prod is HTTPS via Caddy; harmless over http (browsers ignore on non-secure).
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          { key: "Content-Security-Policy-Report-Only", value: csp },
         ],
       },
     ];

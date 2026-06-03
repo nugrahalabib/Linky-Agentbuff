@@ -33,7 +33,33 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.name !== undefined) patch.name = parsed.data.name;
   if (parsed.data.color !== undefined) patch.color = parsed.data.color;
-  if (parsed.data.parentId !== undefined) patch.parentId = parsed.data.parentId;
+  if (parsed.data.parentId !== undefined) {
+    const pid = parsed.data.parentId;
+    if (pid) {
+      if (pid === id) return NextResponse.json({ error: "Folder tidak bisa menjadi induk dirinya sendiri." }, { status: 400 });
+      // parentId has no DB FK, so validate ownership + acyclicity in app code
+      const parent = db
+        .select({ id: folders.id, parentId: folders.parentId })
+        .from(folders)
+        .where(and(eq(folders.id, pid), eq(folders.workspaceId, r.ws.id)))
+        .get();
+      if (!parent) return NextResponse.json({ error: "Folder induk tidak ditemukan." }, { status: 400 });
+      let cursor: string | null = parent.parentId;
+      const seen = new Set<string>([pid]);
+      while (cursor) {
+        if (cursor === id) return NextResponse.json({ error: "Pemindahan ini membuat loop folder." }, { status: 400 });
+        if (seen.has(cursor)) break;
+        seen.add(cursor);
+        const next: { parentId: string | null } | undefined = db
+          .select({ parentId: folders.parentId })
+          .from(folders)
+          .where(and(eq(folders.id, cursor), eq(folders.workspaceId, r.ws.id)))
+          .get();
+        cursor = next?.parentId ?? null;
+      }
+    }
+    patch.parentId = pid;
+  }
   db.update(folders).set(patch).where(eq(folders.id, id)).run();
   const updated = db.select().from(folders).where(eq(folders.id, id)).get();
   return NextResponse.json({ folder: updated });
@@ -43,6 +69,11 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const r = await owned(id);
   if ("err" in r) return r.err;
+  // parentId has no DB FK, so promote children one level up instead of orphaning them.
+  db.update(folders)
+    .set({ parentId: r.row.parentId, updatedAt: new Date() })
+    .where(and(eq(folders.parentId, id), eq(folders.workspaceId, r.ws.id)))
+    .run();
   db.delete(folders).where(eq(folders.id, id)).run();
   return NextResponse.json({ ok: true });
 }

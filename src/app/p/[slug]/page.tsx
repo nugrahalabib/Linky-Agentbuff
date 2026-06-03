@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lock } from "lucide-react";
 import { resolveLinkBySlug, checkLinkStatus, pickTargetUrl } from "@/lib/resolve-link";
-import { recordClick } from "@/lib/clicks";
+import { recordClick, isBot } from "@/lib/clicks";
+import { clientIpFromHeaders } from "@/lib/utils";
 import { headers } from "next/headers";
 
 async function unlockAction(formData: FormData) {
@@ -23,21 +24,24 @@ async function unlockAction(formData: FormData) {
 
   const h = await headers();
   const ua = h.get("user-agent");
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
-  const picked = pickTargetUrl(link, ua, h.get("x-vercel-ip-country"), ip);
-  recordClick({
-    linkId: link.id,
-    ip,
-    ua,
-    referrer: h.get("referer"),
-    country: h.get("x-vercel-ip-country"),
-    region: h.get("x-vercel-ip-country-region"),
-    city: h.get("x-vercel-ip-city"),
-    abVariant: picked.variant ?? null,
-    workspaceId: link.workspaceId,
-    slug: link.slug,
-    destinationUrl: picked.url,
-  });
+  const country = h.get("cf-ipcountry") ?? h.get("x-vercel-ip-country");
+  const ip = clientIpFromHeaders((k) => h.get(k));
+  const picked = pickTargetUrl(link, ua, country, ip);
+  if (!isBot(ua)) {
+    recordClick({
+      linkId: link.id,
+      ip,
+      ua,
+      referrer: h.get("referer"),
+      country,
+      region: h.get("x-vercel-ip-country-region"),
+      city: h.get("x-vercel-ip-city"),
+      abVariant: picked.variant ?? null,
+      workspaceId: link.workspaceId,
+      slug: link.slug,
+      destinationUrl: picked.url,
+    });
+  }
   redirect(picked.url);
 }
 

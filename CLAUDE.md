@@ -28,7 +28,7 @@ Plus referensi sekunder yang dipakai sesuai konteks:
 
 ## TL;DR — Apa ini
 
-**Linky** — open-source (MIT) URL shortener + link-in-bio (Linktree-style) yang free-forever. Production target: **https://linky.agentbuff.id**. Pemilik repo: **Nugraha Labib Mujaddid** (`agentbuff.id@gmail.com`). Versi saat ini: **v0.5.3**.
+**Linky** — open-source (MIT) URL shortener + link-in-bio (Linktree-style) yang free-forever. Production target: **https://linky.agentbuff.id**. Pemilik repo: **Nugraha Labib Mujaddid** (`agentbuff.id@gmail.com`). Versi saat ini: **v0.5.4**.
 
 - **Stack:** Next.js 15 App Router + React 19 + TypeScript strict + Tailwind v4 + SQLite (Drizzle) + Custom JWT auth + Turbopack dev
 - **Port dev/start:** `1709` (bukan 3000)
@@ -146,7 +146,7 @@ Keputusan eksplisit: monorepo (Turborepo) ditolak untuk menjaga build complexity
 ```
 src/
 ├── app/                            # Next.js App Router
-│   ├── page.tsx                    # Landing dengan anonymous shorten
+│   ├── page.tsx                    # Landing marketing (statis; TIDAK ada form shorten — lihat catatan anon di Roadmap)
 │   ├── layout.tsx                  # Root layout + global Toast provider
 │   ├── globals.css                 # Tailwind v4 + design tokens (@theme)
 │   ├── not-found.tsx               # 404 default
@@ -263,10 +263,11 @@ src/
 │   ├── site-header.tsx
 │   ├── command-palette.tsx         # Cmd+K
 │   ├── search-trigger.tsx
-│   ├── shorten-form.tsx            # Landing anonymous shortener
+│   ├── shorten-form.tsx            # ⚠️ TIDAK dirender di mana pun (dead code); /api/shorten authed-only
 │   ├── create-link-form.tsx        # Authed link create
 │   ├── link-list-item.tsx
-│   ├── links-table.tsx
+│   ├── links-browser.tsx           # list utama yang dirender di /dashboard/links
+│   ├── links-table.tsx             # (legacy, tidak dipakai)
 │   ├── analytics-dashboard.tsx
 │   ├── analytics-panel.tsx
 │   ├── sparkline-chart.tsx
@@ -281,7 +282,7 @@ src/
 │   ├── developer-tabs.tsx
 │   ├── folder-manager.tsx
 │   ├── tag-manager.tsx
-│   ├── utm-recipe-form.tsx
+│   ├── utm-recipe-manager.tsx
 │   ├── linky-page-editor.tsx       # Split-view phone preview + block inspector
 │   ├── linky-page-renderer.tsx     # Public /u/<username> render
 │   ├── settings/                   # NEW (Phase yang baru selesai)
@@ -301,7 +302,8 @@ src/
     │   └── index.ts                # Database client + connection
     ├── cache/
     │   └── redis.ts                # ioredis graceful fallback
-    ├── auth.ts                     # JWT + session + ensureWorkspace + getSessionUserWithWorkspace
+    ├── auth.ts                     # JWT + session + requireUser/getSessionUser; ensureWorkspace() delegasi ke workspace.ts; password = bcryptjs (10 rounds)
+    ├── workspace.ts                # getActiveWorkspace — auto-create 1 personal workspace per user (ownerId)
     ├── api-auth.ts                 # Bearer token auth untuk /api/v1/*
     ├── api-helpers.ts              # apiOk/apiError/apiOptions/withApiAuth/rateLimitCheck
     ├── api-serializers.ts          # serializeLink → PublicLink (snake_case)
@@ -326,7 +328,7 @@ src/
 
 ## Data Model — DB Schema Snapshot (12 migrations)
 
-File: `src/lib/db/schema.ts` (single source of truth). Migrations: `scripts/migrate-sqlite.ts`.
+File: `src/lib/db/schema.ts` (single source of truth). Migration runner: `npm run db:migrate` menjalankan `scripts/migrate.ts` — dispatcher yang otomatis pilih `scripts/migrate-sqlite.ts` (default) atau `scripts/migrate-pg.ts` berdasarkan prefix `DATABASE_URL` (`postgres...` → PG, selain itu → SQLite). DDL SQLite ada di dalam `migrate-sqlite.ts` (bukan file `.sql` terpisah).
 
 | Tabel | Fungsi |
 |---|---|
@@ -334,7 +336,7 @@ File: `src/lib/db/schema.ts` (single source of truth). Migrations: `scripts/migr
 | `sessions` | id, user_id (CASCADE), expires_at, user_agent, ip_hash, last_seen_at, timestamps |
 | `workspaces` | id, slug (unique), name, owner_id (CASCADE), plan(`free`/`self_hosted`), timestamps |
 | `domains` | id, workspace_id, hostname (unique), verified, ssl_status, is_default, verification_token |
-| `folders` | id, workspace_id, parent_id (self-FK), name, color |
+| `folders` | id, workspace_id, parent_id (nullable, **indexed only — TIDAK ada DB FK**; integritas parent dijaga di app code), name, color |
 | `tags` | id, workspace_id, name, color — unique(workspace_id, name) |
 | `links` | id, workspace_id (CASCADE), domain_id (SET NULL), slug, destination_url, title, description, favicon_url, folder_id, password_hash, expires_at, click_limit, ios_url, android_url, utm_params (JSON), geo_rules (JSON), ab_variants (JSON), og_title/desc/image, cloak, click_count, archived, is_anonymous, anon_owner_ip, created_by, timestamps. **Indices kritis:** unique(domain_id, slug), partial unique slug WHERE domain_id IS NULL |
 | `link_tags` | composite (link_id, tag_id) |
@@ -467,12 +469,12 @@ Base URL: `${NEXT_PUBLIC_APP_URL}/api/v1`. Bearer auth dengan API key `lnk_...`.
 2. `checkLinkStatus(link)` — handle expired/click_limit/password_required
 3. `pickTargetUrl(link, ua, country, ip)` — A/B variant sticky by IP hash + geo + UA (iOS/Android)
 4. Bot detection via UA regex (`isBot(ua)`)
-5. `recordClick(...)` async (tidak await) untuk non-bot
-6. `NextResponse.redirect(target, 302)` dengan `Cache-Control: private, no-store`
+5. `recordClick(...)` — **sinkron** (better-sqlite3), bukan `async`; dipanggil tanpa `await` (fire-and-forget) untuk non-bot
+6. `NextResponse.redirect(target, 302)` dengan `Cache-Control: private, no-store` (+ `Referrer-Policy: no-referrer-when-downgrade` di redirect final, bukan di cloak)
 
 **Yang TIDAK boleh diubah tanpa diskusi:**
 - Sync click insert (better-sqlite3 sync) — tidak boleh ditambah await
-- Bot filter — jangan terlalu agresif (jangan exclude WhatsApp/Telegram, mereka pre-render)
+- Bot filter — `BOT_RE` di `clicks.ts` **mengecualikan** crawler + social preview fetchers (WhatsApp/Telegram/Facebook/Discord) dari click_count + webhook karena itu pre-render, bukan klik manusia. Ini **benar** untuk shortener. Jangan terlalu agresif untuk UA browser asli.
 - Cloak handling — `link.cloak === true` → redirect ke `/c/<slug>` (iframe page) bukan langsung
 
 ---
@@ -541,8 +543,8 @@ Dua file kunci:
 - Display di UI hanya saat dibuat + via tombol "Lihat" eksplisit
 
 **Rate limit:**
-- Anonymous shorten: `ANON_DAILY_LIMIT` per IP/hari (default 5)
 - API v1: 120 req/menit/key via in-memory Map (per process — kalau scale ke multi-instance perlu Redis)
+- ⚠️ `ANON_DAILY_LIMIT` **tidak dipakai** di kode (nol referensi di `src/`). `/api/shorten` saat ini authed-only (butuh login), bukan anonim. Lihat catatan di Roadmap.
 
 **Headers (next.config.ts):**
 - Standard security headers (X-Content-Type-Options, Referrer-Policy, dll.)
@@ -567,7 +569,6 @@ Lihat `.env.example` dan `.env.production.example`.
 - `DATABASE_URL` — default `file:./linky.db`
 - `REDIS_URL` — graceful fallback kalau kosong
 - `GOOGLE_SAFE_BROWSING_API_KEY` — heuristic-only kalau kosong
-- `ANON_DAILY_LIMIT` — default 5
 
 **Dev:** `.env.local` dengan `AUTH_SECRET=dev-secret-linky-local-only-32-characters-minimum-ok`
 
@@ -582,8 +583,14 @@ npm start              # Run production build di :1709
 npm run typecheck      # tsc --noEmit
 npm run lint           # next lint
 npm test               # node:test via scripts/run-tests.mjs (119 tests)
-npm run db:migrate     # Manual migration trigger
+npm run test:watch     # tsx --test --watch (watch mode)
+npm run db:migrate     # Auto-dispatch migrate (scripts/migrate.ts → sqlite/pg by DATABASE_URL); juga jalan via postinstall
+npm run db:generate    # drizzle-kit generate (gen migration dari schema)
+npm run db:studio      # drizzle-kit studio (GUI inspect DB)
+# npm run db:seed      # ⚠️ terdaftar di package.json tapi scripts/seed.ts BELUM ADA — akan gagal
 ```
+
+**Jalankan satu test file saja:** `npx tsx --test src/lib/<nama>.test.ts` (atau `--test --watch` untuk loop). `npm test` selalu jalankan semua via `scripts/run-tests.mjs`.
 
 ---
 
@@ -638,9 +645,10 @@ VPS pemilik: **148.230.100.170** (Hostinger). Postgres ada di sana (`postgres_co
 - Multi-domain support UI
 - Geo targeting rules editor UI (schema sudah ada)
 - Mobile app (React Native via Expo, share `lib/`)
-- Postgres adapter actually switched on (perlu async migration)
+- Postgres adapter actually switched on (perlu async migration; `schema-pg.ts`/`migrate-pg.ts` masih incomplete — 13 dari 18 tabel)
 
 ### ❌ DITOLAK
+- **Anonymous shorten (tanpa login)** — **DITOLAK secara sengaja** (keputusan owner 2026-06-04): membuat link **wajib punya akun** dulu — "harus dapet data dia siapa dulu, gaboleh asal dipake bebas sama orang yang datanya belum kita dapat". Maka `/api/shorten` memang authed-only (401 tanpa session) — itu **benar by design**, bukan bug. `ANON_DAILY_LIMIT` tidak dipakai. `src/components/shorten-form.tsx` adalah dead code (tidak dirender) — boleh dihapus atau dipakai ulang sebagai quick-shorten untuk user yang **sudah login**. Kolom `is_anonymous`/`anon_owner_ip` + index `links_anon_owner_idx` vestigial (bisa di-drop via migrasi 0012 nanti). Jangan re-introduce shorten anonim.
 - **Multi-user workspaces / Tim feature** — pernah dibangun lalu dihapus total (commit `46758c1`). Linky sekarang single-user product. Setiap user = 1 personal workspace. Jangan re-introduce tanpa diskusi.
 
 ---
@@ -661,7 +669,7 @@ Kalau kamu Claude Code yang baru join sesi:
 ```bash
 npm run typecheck    # WAJIB zero error
 npm test             # WAJIB 119/119 pass
-npm run build        # WAJIB sukses (Turbopack production build)
+npm run build        # WAJIB sukses (next build / webpack — Turbopack HANYA untuk dev)
 # Smoke test endpoint utama via curl kalau fitur API
 ```
 

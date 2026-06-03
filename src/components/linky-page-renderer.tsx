@@ -55,6 +55,7 @@ export function LinkyPageRenderer({
   blocks: LinkyPageBlock[];
 }) {
   useEffect(() => {
+    if (pageId === "preview") return; // editor preview uses a sentinel id — don't record views
     fetch(`/api/linky-pages/${pageId}/click`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -68,6 +69,7 @@ export function LinkyPageRenderer({
   const bg = background ?? preset.bg;
 
   const trackClick = (blockId: string) => {
+    if (pageId === "preview") return; // editor preview — don't record clicks
     fetch(`/api/linky-pages/${pageId}/click`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
