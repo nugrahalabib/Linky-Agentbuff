@@ -4,6 +4,28 @@
 
 ---
 
+## 📚 Reading Order untuk Sesi Baru (WAJIB)
+
+File ini sengaja ringkas (~700 baris). Untuk konteks penuh, baca tiga file dengan urutan ini:
+
+| # | File | Kapan dibutuhkan | Ringkasan isi |
+|---|---|---|---|
+| 1 | **CLAUDE.md** (ini) | **Selalu — dibaca pertama** | Onboarding: stack, konvensi, struktur folder, workflow sesi baru |
+| 2 | **[docs/SESSION-LOG.md](docs/SESSION-LOG.md)** | **Selalu — dibaca kedua** | Konteks user (preferensi, anti-patterns), timeline keputusan, audit trail, known issues, cara resume |
+| 3 | **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Saat menyentuh kode kompleks atau merancang fitur baru | Deep technical: setiap tabel DB, request lifecycles, REST API design, webhook delivery, CSV pipeline, performance, deploy topology, migration plan |
+
+Plus referensi sekunder yang dipakai sesuai konteks:
+- **[CHANGELOG.md](CHANGELOG.md)** — release notes per versi (apa yang berubah & kenapa)
+- **[README.md](README.md)** — public-facing (jangan tulis konteks internal di sini)
+- **`~/.claude/plans/aku-ingin-membuat-web-sunny-hanrahan.md`** — visi awal project (untuk konteks roadmap)
+
+**Saat update arsitektur/konvensi:** update file yang relevan. Aturan:
+- Konvensi atau struktur baru → **CLAUDE.md**
+- Deep technical baru (flow, schema, perf) → **docs/ARCHITECTURE.md**
+- Keputusan besar / fitur besar yang baru di-ship → **docs/SESSION-LOG.md** + **CHANGELOG.md**
+
+---
+
 ## TL;DR — Apa ini
 
 **Linky** — open-source (MIT) URL shortener + link-in-bio (Linktree-style) yang free-forever. Production target: **https://linky.agentbuff.id**. Pemilik repo: **Nugraha Labib Mujaddid** (`agentbuff.id@gmail.com`). Versi saat ini: **v0.5.3**.
@@ -627,11 +649,13 @@ VPS pemilik: **148.230.100.170** (Hostinger). Postgres ada di sana (`postgres_co
 
 Kalau kamu Claude Code yang baru join sesi:
 
-1. **Baca file ini sampai habis** sebelum melakukan apa-apa.
-2. Cek `git log --oneline -10` untuk lihat commit terakhir.
-3. Cek `git status` untuk lihat ada perubahan uncommitted.
-4. Kalau user minta fitur baru, lihat dulu apakah ada konflik dengan keputusan di file ini.
-5. Untuk fitur besar: bikin plan komprehensif → user approve → implement → verify e2e → commit dengan message detail → push.
+1. **Baca CLAUDE.md (file ini) sampai habis** sebelum melakukan apa-apa.
+2. **Lalu baca [docs/SESSION-LOG.md](docs/SESSION-LOG.md)** untuk konteks user + timeline keputusan + audit trail.
+3. **Skim [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** untuk tahu apa yang ada — baca section spesifik saat menyentuh kode terkait.
+4. Cek `git log --oneline -10` untuk lihat commit terakhir.
+5. Cek `git status` untuk lihat ada perubahan uncommitted.
+6. Kalau user minta fitur baru, lihat dulu apakah ada konflik dengan keputusan di tiga file dokumentasi.
+7. Untuk fitur besar: bikin plan komprehensif → user approve → implement → verify e2e → commit dengan message detail → push.
 
 **Verifikasi sebelum claim "done":**
 ```bash
@@ -671,4 +695,4 @@ Untuk konvensi: konfirmasi dulu sebelum mengubah arsitektur fundamental atau men
 
 ---
 
-> **Akhir kata:** file ini hidup. Setiap kali ada keputusan arsitektur baru, update file ini. Setiap kali bikin sesi baru, baca dari atas. Jangan sampai sesi berikutnya bingung soal kenapa SQLite sync atau kenapa tidak vitest — semua jawaban harusnya ada di sini.
+> **Akhir kata:** file ini hidup. Setiap kali ada keputusan arsitektur baru, update file ini (+ ARCHITECTURE.md / SESSION-LOG.md sesuai aturan di Reading Order). Setiap kali bikin sesi baru, baca CLAUDE.md → SESSION-LOG.md → skim ARCHITECTURE.md. Jangan sampai sesi berikutnya bingung soal kenapa SQLite sync atau kenapa tidak vitest — semua jawaban harusnya ada di tiga file ini.
