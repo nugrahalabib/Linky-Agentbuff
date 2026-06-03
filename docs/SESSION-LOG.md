@@ -12,7 +12,7 @@
 | Branch | `main` (sinkron dengan `origin/main`) |
 | Working tree | Clean |
 | Total commit di sesi ini | 6 commit (semua sudah di-push) |
-| Tests | 119/119 pass |
+| Tests | 127/127 pass |
 | TypeScript | Zero error |
 | Production build | Sukses |
 | DB | SQLite, 12 migrations applied |
@@ -250,8 +250,38 @@ User minta jalankan project. Encountered Windows App Control blocking `better_sq
 - `npm run dev` (Turbopack) → ready di :1709
 - Smoke test: public pages 200, dashboard pages redirect 307 (correct)
 
-### 2026-06-04 — Dokumentasi komprehensif (sesi ini)
+### 2026-06-04 — Dokumentasi komprehensif
 Update CLAUDE.md jadi master onboarding doc + bikin docs/ARCHITECTURE.md + docs/SESSION-LOG.md (file ini). Tujuan: sesi baru bisa langsung lanjut tanpa kembali ke sesi ini.
+
+### 2026-06-04 — Audit menyeluruh + perbaikan + security hardening (`4667c93`)
+Sesi audit besar: baca SELURUH codebase (14 agent paralel) + verifikasi adversarial (8 agent) untuk mencocokkan docs vs kode nyata. Banyak klaim docs ternyata salah → dikoreksi; ditemukan bug nyata → diperbaiki; owner minta hardening keamanan menyeluruh.
+
+**Bug/correctness diperbaiki:**
+- v1 `/api/v1/qr`: `.parse`→`safeParse` (400 bersih, bukan 500 uncaught)
+- Folder: `DELETE` mempromosikan anak folder (parent_id tanpa FK, sebelumnya jadi yatim); `PATCH` validasi parent (ownership/self/loop)
+- Validasi `folderId` lintas-workspace di bulk move + `PATCH /api/links/[id]` + `PATCH /api/v1/links/[id]`
+- `checkUrlSafety` dijalankan ulang saat `destinationUrl` di-edit (internal + v1) — tutup celah bait-and-switch
+- IP client disatukan via `clientIpFromHeaders` di `[slug]`/`/c`/`/p` → A/B sticky variant konsisten (fix mismatch cloak di balik Cloudflare)
+- Password gate skip `recordClick` untuk bot
+- Linky page: preview editor no-op tracking; endpoint click skip halaman draft + bot
+
+**Security (owner: "jangan sampai ada celah"):**
+- Webhook SSRF guard (tolak host internal/loopback/metadata/non-http) di `POST` + `PATCH /api/webhooks`
+- Deteksi internal-host safe-browsing diperluas (`isInternalHost`/`isUnsafeRequestUrl`): IPv6 `::1`/`fc00::/7`/`fe80::/10`, seluruh `127/8`, `0.0.0.0`, IPv4 desimal/hex — + test
+- Header `Strict-Transport-Security` (HSTS) + `Content-Security-Policy` (Report-Only) di `next.config.ts`
+
+**Fitur baru:**
+- REST API v1 menyimpan `tagIds` (workspace-scoped) di POST/PATCH (sebelumnya silently dibuang)
+- `PATCH` (edit) untuk tags + UTM recipes — endpoint + UI (tombol pensil + panel)
+- next/font di-bridge ke `@theme` token (Inter/JetBrains beneran kepakai)
+
+**Config/keputusan:**
+- Hapus script `db:seed` rusak + field `packageManager: pnpm` (toolchain = npm)
+- **Anonymous shorten DITOLAK by design**: pembuatan link **wajib login** (keputusan owner — harus tahu identitas user). `/api/shorten` authed-only itu benar; `shorten-form.tsx` dead code; `ANON_DAILY_LIMIT` tidak dipakai
+
+**Verifikasi:** typecheck zero error · **127/127 test pass** · production build sukses. Commit `4667c93` di branch `fix/audit-hardening-2026-06-04`, lalu merge ke `main`.
+
+> Catatan: folder kerja lokal sesi ini awalnya **bukan git repo** (tidak ada `.git`). Di-init ulang, di-fetch dari `origin/main`, lalu commit di atas history remote (fast-forward, non-destruktif).
 
 ---
 
