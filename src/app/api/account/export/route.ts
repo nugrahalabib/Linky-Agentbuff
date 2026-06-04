@@ -47,11 +47,11 @@ export async function GET() {
     workspace: { id: ws.id, slug: ws.slug, name: ws.name, created_at: ws.createdAt },
     // Strip secrets/PII even from the owner's own export: link password hashes and the anonymous
     // owner IP should never leave the system, and visitor IP hashes aren't the exporter's data.
-    links: myLinks.map(({ passwordHash, anonOwnerIp, ...rest }) => rest),
+    links: myLinks.map(({ passwordHash: _ph, anonOwnerIp: _aip, ...rest }) => rest),
     folders: myFolders,
     tags: myTags,
     link_tags: myLinkTags,
-    clicks: myClicks.map(({ ipHash, ...rest }) => rest),
+    clicks: myClicks.map(({ ipHash: _ih, ...rest }) => rest),
     utm_recipes: myUtm,
     linky_pages: myPages,
     linky_page_clicks: myPageClicks,
