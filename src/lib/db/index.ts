@@ -1,60 +1,29 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import path from "node:path";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
 
 /**
- * Database: SQLite (WAL) with sync drizzle API (`.get()/.all()/.run()`).
- *
- * A production Postgres adapter is prepared (see `schema-pg.ts` + `migrate-pg.ts`)
- * and a dedicated Postgres database is provisioned on the VPS, but call sites
- * currently rely on synchronous SQLite semantics. Migration to async Postgres is
- * tracked as a follow-up phase and will convert all `db.select()...get()` patterns
- * to awaitable queries behind a unified repository layer.
+ * Database: PostgreSQL via postgres-js with the async Drizzle API.
+ * postgres-js is pure-JS (no native binding — sidesteps the Windows App Control issue that
+ * previously forced better-sqlite3) and connects LAZILY: importing this module does not open a
+ * connection until the first query runs, so pure-function unit tests don't need a live DB.
+ * DDL is applied via scripts/migrate-pg.ts. The legacy SQLite schema is archived in schema-sqlite.ts.
  */
 
-type DbKind = "sqlite" | "postgres";
+export const dbKind = "postgres" as const;
 
-export function detectKind(url: string | undefined): DbKind {
-  if (!url) return "sqlite";
-  return url.startsWith("postgres") ? "postgres" : "sqlite";
-}
+const DATABASE_URL = process.env.DATABASE_URL ?? "postgres://linky_user@127.0.0.1:5434/linky";
 
-const DATABASE_URL = process.env.DATABASE_URL ?? "file:./linky.db";
-const resolvedKind = detectKind(DATABASE_URL);
-export const dbKind: DbKind = resolvedKind === "postgres" ? "postgres" : "sqlite";
+const globalForDb = globalThis as unknown as { pgClient?: ReturnType<typeof postgres> };
+const client = globalForDb.pgClient ?? postgres(DATABASE_URL, { max: 10, prepare: false });
+if (process.env.NODE_ENV !== "production") globalForDb.pgClient = client;
 
-function getSqliteFile(): string {
-  // If a postgres URL is provided we still fall back to a local SQLite file so
-  // the app doesn't crash — surface-level warn so operators notice during deploy.
-  if (resolvedKind === "postgres") {
-    console.warn(
-      "[db] postgres URL detected but runtime still uses SQLite. Migration pending.",
-    );
-    return path.resolve(process.cwd(), "linky.db");
-  }
-  const cleaned = DATABASE_URL.startsWith("file:") ? DATABASE_URL.slice(5) : DATABASE_URL;
-  return path.resolve(process.cwd(), cleaned);
-}
-
-const globalForDb = globalThis as unknown as { sqlite?: Database.Database };
-
-function createSqlite(): Database.Database {
-  if (globalForDb.sqlite) return globalForDb.sqlite;
-  const sqlite = new Database(getSqliteFile());
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-  sqlite.pragma("busy_timeout = 5000");
-  globalForDb.sqlite = sqlite;
-  return sqlite;
-}
-
-export const sqlite = createSqlite();
-export const db = drizzle(sqlite, { schema });
+export const sql = client;
+export const db = drizzle(client, { schema });
 
 export async function pingDb(): Promise<boolean> {
   try {
-    sqlite.prepare("SELECT 1").get();
+    await client`SELECT 1`;
     return true;
   } catch {
     return false;
