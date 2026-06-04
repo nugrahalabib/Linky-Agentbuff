@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveLinkBySlug, checkLinkStatus, pickTargetUrl } from "@/lib/resolve-link";
+import { resolveLinkForHost, checkLinkStatus, pickTargetUrl } from "@/lib/resolve-link";
 import { recordClick, isBot } from "@/lib/clicks";
 import { clientIpFromHeaders } from "@/lib/utils";
 
@@ -9,7 +9,7 @@ function getClientIp(req: Request): string {
 
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const link = resolveLinkBySlug(slug);
+  const link = resolveLinkForHost(req.headers.get("host"), slug);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
 
   if (!link) {

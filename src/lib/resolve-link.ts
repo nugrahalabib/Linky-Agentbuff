@@ -2,7 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { UAParser } from "ua-parser-js";
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
-import { links, type Link } from "@/lib/db/schema";
+import { domains, links, type Link } from "@/lib/db/schema";
 
 export type ResolveResult =
   | { kind: "not_found" }
@@ -87,6 +87,41 @@ export function resolveLinkBySlug(slug: string): Link | null {
       .where(and(eq(links.slug, slug), isNull(links.domainId), eq(links.archived, false)))
       .get() ?? null
   );
+}
+
+function appHostname(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709")
+    .replace(/^https?:\/\//, "")
+    .split("/")[0]
+    .split(":")[0]
+    .toLowerCase();
+}
+
+/**
+ * Host-aware slug resolution for the redirect path.
+ * - On a VERIFIED custom domain → resolve strictly within that domain (no fallback, so a
+ *   default-domain slug never leaks under someone's custom host).
+ * - On the app host / localhost / an unknown-or-unverified host → default domain (domain_id IS NULL).
+ */
+export function resolveLinkForHost(host: string | null | undefined, slug: string): Link | null {
+  const hostname = (host ?? "").split(":")[0].trim().toLowerCase();
+  if (hostname && hostname !== appHostname() && hostname !== "localhost" && hostname !== "127.0.0.1") {
+    const domain = db
+      .select({ id: domains.id })
+      .from(domains)
+      .where(and(eq(domains.hostname, hostname), eq(domains.verified, true)))
+      .get();
+    if (domain) {
+      return (
+        db
+          .select()
+          .from(links)
+          .where(and(eq(links.domainId, domain.id), eq(links.slug, slug), eq(links.archived, false)))
+          .get() ?? null
+      );
+    }
+  }
+  return resolveLinkBySlug(slug);
 }
 
 export function checkLinkStatus(link: Link): ResolveResult {
