@@ -31,8 +31,15 @@ export function UtmRecipeManager({ initial }: { initial: UtmRecipe[] }) {
     utmContent: "",
   });
   const [loading, setLoading] = useState(false);
-  const emptyEdit = { id: "", name: "", utmSource: "", utmMedium: "", utmCampaign: "", utmTerm: "", utmContent: "" };
-  const [editing, setEditing] = useState<typeof emptyEdit | null>(null);
+  const [editing, setEditing] = useState<{
+    id: string;
+    name: string;
+    utmSource: string;
+    utmMedium: string;
+    utmCampaign: string;
+    utmTerm: string;
+    utmContent: string;
+  } | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
   const fill = (p: (typeof PRESETS)[number]) => {

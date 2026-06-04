@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateLinkForm } from "@/components/create-link-form";
 import { AnalyticsPanel } from "@/components/analytics-panel";
+import { TargetingEditor } from "@/components/targeting-editor";
 import { QrStudio } from "@/components/qr-studio";
 import { DeleteLinkButton } from "@/components/delete-link-button";
 import { CopyButton } from "@/components/copy-button";
@@ -80,12 +81,22 @@ export default async function LinkDetailPage({ params }: { params: Promise<{ id:
             <QrIcon className="h-3.5 w-3.5 mr-1" />
             QR Code
           </TabsTrigger>
+          <TabsTrigger value="targeting">Targeting</TabsTrigger>
           <TabsTrigger value="settings">Pengaturan</TabsTrigger>
           <TabsTrigger value="danger">Bahaya</TabsTrigger>
         </TabsList>
 
         <TabsContent value="analytics">
           <AnalyticsPanel linkId={link.id} />
+        </TabsContent>
+
+        <TabsContent value="targeting">
+          <TargetingEditor
+            linkId={link.id}
+            destinationUrl={link.destinationUrl}
+            initialVariants={link.abVariants ?? []}
+            initialGeoRules={link.geoRules ?? []}
+          />
         </TabsContent>
 
         <TabsContent value="qr">
