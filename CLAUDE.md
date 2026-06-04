@@ -30,7 +30,7 @@ Plus referensi sekunder yang dipakai sesuai konteks:
 
 **Linky** — open-source (MIT) URL shortener + link-in-bio (Linktree-style) yang free-forever. Production target: **https://linky.agentbuff.id**. Pemilik repo: **Nugraha Labib Mujaddid** (`agentbuff.id@gmail.com`). Versi saat ini: **v0.5.4**.
 
-- **Stack:** Next.js 15 App Router + React 19 + TypeScript strict + Tailwind v4 + SQLite (Drizzle) + Google OAuth login (jose JWT sessions) + Turbopack dev
+- **Stack:** Next.js 15 App Router + React 19 + TypeScript strict + Tailwind v4 + **PostgreSQL (Drizzle, postgres-js, async)** + Google OAuth login (jose JWT sessions) + Turbopack dev. *(Runtime pindah dari SQLite → Postgres 2026-06-04; better-sqlite3 tidak lagi dipakai runtime. SQLite schema lama diarsipkan di `schema-sqlite.ts`.)*
 - **Port dev/start:** `1709` (bukan 3000)
 - **Repo:** https://github.com/nugrahalabib/Linky-Agentbuff
 - **Lisensi:** MIT
@@ -131,7 +131,7 @@ Keputusan eksplisit: monorepo (Turborepo) ditolak untuk menjaga build complexity
 
 | Pilihan | Alasan singkat |
 |---|---|
-| **better-sqlite3 + sync Drizzle API** | Zero-config, file `linky.db` ringan, banyak query per request tidak masalah karena sync. Postgres adapter siap (`src/lib/db/schema-pg.ts`, `scripts/migrate-pg.ts`) tapi runtime masih SQLite. Migrasi ke async Drizzle = pekerjaan besar (semua call site harus jadi async). |
+| **PostgreSQL + postgres-js (async Drizzle)** | Runtime sekarang Postgres (pindah dari better-sqlite3 2026-06-04). `postgres-js` pure-JS (tanpa native binding — bonus: lepas dari masalah Windows App Control yang dulu memaksa better-sqlite3). Semua call site sudah async (`await db.select()...`, dst.). DDL via `scripts/migrate-pg.ts`. DB: container `linky_postgres` di VPS (lihat Deploy Notes). Schema SQLite lama diarsipkan di `schema-sqlite.ts`. |
 | **Custom JWT (jose) bukan NextAuth** | Lebih ringan, kontrol penuh. JWT signed HS256 disimpan di httpOnly cookie + tabel `sessions`. |
 | **Tailwind v4 CSS-first** | `@theme` block di `globals.css`. Tidak ada `tailwind.config.ts`. |
 | **shadcn-style components copy-paste** | UI primitives ada di `src/components/ui/`. Bukan dependency NPM, supaya bisa di-tweak. |
@@ -627,7 +627,7 @@ Two paths (lihat README + `docker-compose.yml`):
 - Untuk DB persistent perlu swap SQLite → Postgres (Supabase/Neon). Schema sudah ada di `src/lib/db/schema-pg.ts`, migrator di `scripts/migrate-pg.ts`. Tapi semua call site Drizzle masih sync — perlu refactor ke async dulu.
 
 VPS pemilik: **148.230.100.170** (Hostinger), banyak project lain co-hosted di sana — jangan sentuh.
-**Postgres khusus Linky sudah disediakan (2026-06-04):** container **`linky_postgres`** (postgres:18, terisolasi, BUKAN `postgres_container` bersama), docker network **`linky-net`**, volume `linky_pgdata`, DB `linky`, role `linky_user`, bind `127.0.0.1:5434`. Schema sudah dimigrasikan penuh (18 tabel via `migrate-pg.ts` 0000+0001). Akses dari lokal: `ssh -L 5434:127.0.0.1:5434 agentbuff-vps`. App container harus join `linky-net` untuk konek `linky_postgres:5432`. **Runtime masih SQLite** sampai refactor sync→async call-site selesai (lihat Roadmap).
+**Postgres khusus Linky sudah disediakan (2026-06-04):** container **`linky_postgres`** (postgres:18, terisolasi, BUKAN `postgres_container` bersama), docker network **`linky-net`**, volume `linky_pgdata`, DB `linky`, role `linky_user`, bind `127.0.0.1:5434`. Schema dimigrasikan penuh (18 tabel via `migrate-pg.ts` 0000+0001). **Runtime sekarang Postgres (live)** — app sudah jalan & tervalidasi end-to-end ke DB ini (health SELECT 1, redirect read, v1 auth). **Dev lokal butuh tunnel dulu:** `ssh -f -N -L 127.0.0.1:5434:127.0.0.1:5434 agentbuff-vps`, lalu `.env.local` `DATABASE_URL=postgres://linky_user:…@127.0.0.1:5434/linky`. App container (deploy) harus join `linky-net` untuk konek `linky_postgres:5432`.
 
 ---
 
@@ -653,7 +653,7 @@ VPS pemilik: **148.230.100.170** (Hostinger), banyak project lain co-hosted di s
 - Multi-domain support UI
 - Geo targeting rules editor UI (schema sudah ada)
 - Mobile app (React Native via Expo, share `lib/`)
-- Postgres adapter actually switched on (perlu async migration; `schema-pg.ts`/`migrate-pg.ts` masih incomplete — 13 dari 18 tabel)
+- ✅ **Postgres switched on (DONE 2026-06-04)** — runtime async postgres-js, schema parity penuh, DB `linky_postgres` live di VPS, app tervalidasi e2e.
 
 ### ❌ DITOLAK
 - **Anonymous shorten (tanpa login)** — **DITOLAK secara sengaja** (keputusan owner 2026-06-04): membuat link **wajib punya akun** dulu — "harus dapet data dia siapa dulu, gaboleh asal dipake bebas sama orang yang datanya belum kita dapat". Maka `/api/shorten` memang authed-only (401 tanpa session) — itu **benar by design**, bukan bug. `ANON_DAILY_LIMIT` tidak dipakai. `src/components/shorten-form.tsx` adalah dead code (tidak dirender) — boleh dihapus atau dipakai ulang sebagai quick-shorten untuk user yang **sudah login**. Kolom `is_anonymous`/`anon_owner_ip` + index `links_anon_owner_idx` vestigial (bisa di-drop via migrasi 0012 nanti). Jangan re-introduce shorten anonim.

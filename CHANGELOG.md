@@ -5,6 +5,13 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ## [Unreleased]
 
+### BREAKING — Runtime database is now PostgreSQL (async)
+- **Migrasi runtime SQLite → PostgreSQL** (postgres-js, async Drizzle). Seluruh ~347 call-site DB di 66 file dikonversi sync→async (`.get/.all/.run` → `await`); `schema.ts` jadi pg-core (export name sama, nol import churn); SQLite lama diarsip `schema-sqlite.ts`. `postgres-js` pure-JS (tanpa native binding — lepas dari masalah Windows App Control yang dulu memaksa better-sqlite3).
+- **DB khusus di VPS**: container terisolasi `linky_postgres` (postgres:18, network `linky-net`, volume `linky_pgdata`, `127.0.0.1:5434`), schema dimigrasikan penuh (18 tabel). Tidak menyentuh `postgres_container` bersama / project lain.
+- analytics date-bucketing → Postgres `to_char(ts AT TIME ZONE 'UTC','YYYY-MM-DD')`; webhook prune via `db.execute`.
+- **Tervalidasi end-to-end ke Postgres asli**: `/api/health` `database.ok=true` (SELECT 1), hot-path redirect read, v1 auth — semua jalan. typecheck 0 error · 129/129 test · build sukses.
+- Dev lokal: butuh SSH tunnel ke VPS PG (lihat `.env.example` / CLAUDE.md). `.env.production.example` di-update untuk `linky_postgres`.
+
 ### BREAKING — Auth is now Google OAuth only
 - **Login dirombak total ke Google OAuth** (OAuth2 authorization-code + PKCE + state), implementasi manual tanpa dependency baru. Email/password login **dihapus** (route signup/login/change-password dihapus; `/signup` → redirect `/signin`). User lama otomatis ter-link via email saat login Google pertama.
 - **Colokan SSO**: provider OIDC generik (`src/lib/oauth.ts`) yang auto-aktif dari env `SSO_OIDC_*` — sambungkan Keycloak/Auth0/Azure AD/Okta tanpa ubah kode. Routing generik `/api/auth/oauth/[provider]/{start,callback}`.
