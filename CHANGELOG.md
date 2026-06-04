@@ -5,6 +5,22 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ## [Unreleased]
 
+### Security — company-grade hardening pass (pre-launch audit)
+- **Reflected XSS via QR logo FIXED** — `/api/qr` (`logo` query) & `/api/qr-branded` interpolasi data-URI logo ke `<image href>` di SVG (disajikan `image/svg+xml`). Sekarang hanya menerima data-URI gambar raster ketat (png/jpeg/gif/webp; `svg+xml` ditolak), plus header pertahanan `Content-Security-Policy: default-src 'none'; sandbox` di setiap respons SVG. Endpoint QR juga di-rate-limit + `safeParse` (tak lagi 500).
+- **CSP kini DIPAKSA (bukan report-only)** — `src/middleware.ts` set CSP berbasis nonce per-request (`script-src 'self' 'nonce-…' 'strict-dynamic'`), `'unsafe-eval'` dibuang di produksi (cuma dev/Turbopack). Tervalidasi: nonce CSP cocok dengan 58 tag `<script nonce>` → JS tetap jalan.
+- **OAuth account-takeover ditutup** — penautan akun lewat email kini hanya jika provider menyatakan email terverifikasi (`findOrCreateOAuthUser`); SSO OIDC `email_verified` fail-closed (default `false` saat absen). `jwtVerify` dipin ke HS256 (anti alg-confusion). `AUTH_SECRET` produksi menolak placeholder dev + wajib ≥32 char.
+- **Stored XSS Linky Page ditutup** — modul `sanitize-url.ts` (read & write): href hanya http(s)/mailto/tel, gambar http(s)/`data:image`, YouTube id `[A-Za-z0-9_-]{11}`, theme color hex, background CSS tanpa `url()/expression/<>`. `iosUrl/androidUrl/ogImage` kini `httpUrl()` (tolak `javascript:`).
+- **Webhook SSRF dikeraskan** — `redirect: 'manual'` + cek ulang `isUnsafeRequestUrl` saat delivery (redirect 3xx ke host internal tak bisa lagi bypass validasi registrasi).
+- **Cloak iframe** diberi `sandbox` (tanpa allow-top-navigation → cegah hijack URL cloak) + guard target wajib http(s).
+- **Kebocoran data ditutup** — respons API link buang `passwordHash`/`anonOwnerIp` (jadi flag `hasPassword`); webhook secret di-mask di list + reveal on-demand (owner-only); account export tanpa hash/PII; `cf-connecting-ip` yang bisa dipalsukan tak lagi dipercaya.
+- **Rate-limit** ditambah ke endpoint publik: abuse-reports, shorten (per-akun), qr/qr-branded (per-IP).
+- **Dependency**: Next.js `15.5.4 → 15.5.19` (tutup CVE RCE), drizzle-orm `→ 0.45.2`; `postinstall` migrate dihapus; CI security job jadi gating; `engines`/`.nvmrc` (node 22); `.gitignore` `.env.production`.
+- Verifikasi: typecheck 0 error · **146/146 test** (17 test keamanan baru) · build sukses · smoke test ke Postgres asli (health `postgres ok`, CSP enforced, payload XSS QR diblokir).
+
+### Deploy/data-safety — upgrade tanpa kehilangan data
+- `docker-compose.yml`: hapus default SQLite, `DATABASE_URL`/`AUTH_SECRET` wajib (fail-fast), `linky-net` dijadikan **external** (attach ke `linky_postgres` yang sudah ada — DB tak pernah di-recreate oleh `compose up/down`).
+- `deploy.yml`: **pg_dump pra-migrasi** (retensi 14), dan **rollback aplikasi** otomatis ke commit sebelumnya bila healthcheck gagal (situs tetap hidup). `Dockerfile` buang `DATABASE_URL` SQLite build-time.
+
 ### BREAKING — Runtime database is now PostgreSQL (async)
 - **Migrasi runtime SQLite → PostgreSQL** (postgres-js, async Drizzle). Seluruh ~347 call-site DB di 66 file dikonversi sync→async (`.get/.all/.run` → `await`); `schema.ts` jadi pg-core (export name sama, nol import churn); SQLite lama diarsip `schema-sqlite.ts`. `postgres-js` pure-JS (tanpa native binding — lepas dari masalah Windows App Control yang dulu memaksa better-sqlite3).
 - **DB khusus di VPS**: container terisolasi `linky_postgres` (postgres:18, network `linky-net`, volume `linky_pgdata`, `127.0.0.1:5434`), schema dimigrasikan penuh (18 tabel). Tidak menyentuh `postgres_container` bersama / project lain.

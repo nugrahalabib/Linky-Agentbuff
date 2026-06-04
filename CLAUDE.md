@@ -65,7 +65,7 @@ Akun untuk test biasanya kamu signup baru via `/signup`. Tidak ada akun seed def
 **Tes wajib sebelum claim "done":**
 ```bash
 npm run typecheck   # tsc --noEmit, harus zero error
-npm test            # 119 tests, semua harus pass
+npm test            # 146 tests, semua harus pass
 npm run build       # production build, harus succeed
 ```
 
@@ -395,7 +395,7 @@ File: `src/lib/db/schema.ts` (single source of truth). Migration runner: `npm ru
 - `*.test.ts` di sebelah file yang dites
 - Pakai `describe`, `it`, `expect` dari `@/lib/test-shim`
 - Jalan via `npm test` (yang invoke `scripts/run-tests.mjs`)
-- Total saat ini: **119 tests, semua pass**
+- Total saat ini: **146 tests, semua pass**
 
 ### Komen & dokumentasi
 - Jangan tulis komen yang menjelaskan WHAT (kode sudah jelas). Hanya tulis WHY untuk keputusan non-obvious / workaround.
@@ -589,7 +589,7 @@ npm run build          # Production build
 npm start              # Run production build di :1709
 npm run typecheck      # tsc --noEmit
 npm run lint           # next lint
-npm test               # node:test via scripts/run-tests.mjs (119 tests)
+npm test               # node:test via scripts/run-tests.mjs (146 tests)
 npm run test:watch     # tsx --test --watch (watch mode)
 npm run db:migrate     # Auto-dispatch migrate (scripts/migrate.ts → sqlite/pg by DATABASE_URL); juga jalan via postinstall
 npm run db:generate    # drizzle-kit generate (gen migration dari schema)
@@ -676,7 +676,7 @@ Kalau kamu Claude Code yang baru join sesi:
 **Verifikasi sebelum claim "done":**
 ```bash
 npm run typecheck    # WAJIB zero error
-npm test             # WAJIB 119/119 pass
+npm test             # WAJIB 146/146 pass
 npm run build        # WAJIB sukses (next build / webpack — Turbopack HANYA untuk dev)
 # Smoke test endpoint utama via curl kalau fitur API
 ```

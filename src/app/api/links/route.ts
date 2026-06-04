@@ -10,6 +10,7 @@ import { createLinkSchema } from "@/lib/validators";
 import { getFaviconUrl, hostOf, isValidUrl, normalizeUrl } from "@/lib/utils";
 import { checkUrlSafety } from "@/lib/safe-browsing";
 import { fireWebhooks } from "@/lib/webhooks";
+import { omitLinkSecrets } from "@/lib/api-serializers";
 
 export async function GET(req: Request) {
   const ctx = await getSessionUser();
@@ -91,7 +92,7 @@ export async function GET(req: Request) {
     for (const f of folderRows) folderMap.set(f.id, f);
   }
   const enriched = rows.map((l) => ({
-    ...l,
+    ...omitLinkSecrets(l),
     tags: tagMap.get(l.id) ?? [],
     folder: l.folderId ? folderMap.get(l.folderId) ?? null : null,
   }));
@@ -223,5 +224,5 @@ export async function POST(req: Request) {
     });
   }
 
-  return NextResponse.json({ link: created });
+  return NextResponse.json({ link: created ? omitLinkSecrets(created) : null });
 }

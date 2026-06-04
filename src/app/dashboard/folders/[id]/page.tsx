@@ -8,6 +8,7 @@ import { ensureWorkspace, requireUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LinkListItem } from "@/components/link-list-item";
+import { omitLinkSecrets } from "@/lib/api-serializers";
 
 export default async function FolderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -61,7 +62,7 @@ export default async function FolderDetailPage({ params }: { params: Promise<{ i
           ) : (
             <div className="flex flex-col divide-y divide-[color:var(--border)]">
               {list.map((l) => (
-                <LinkListItem key={l.id} link={l} appUrl={appUrl} />
+                <LinkListItem key={l.id} link={omitLinkSecrets(l)} appUrl={appUrl} />
               ))}
             </div>
           )}

@@ -41,7 +41,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     await ensureWorkspace(user.id);
     await createSession(user.id);
     return NextResponse.redirect(new URL("/dashboard", appUrl));
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message === "OAUTH_EMAIL_UNVERIFIED") {
+      return NextResponse.redirect(new URL("/signin?error=email_unverified", appUrl));
+    }
     return NextResponse.redirect(new URL("/signin?error=oauth_failed", appUrl));
   }
 }

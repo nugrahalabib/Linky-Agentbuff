@@ -90,9 +90,13 @@ export async function brandedQrSvg(text: string, cfg: BrandedQrConfig = {}): Pro
     }
   }
 
-  // Optional logo overlay in center (with white safe-zone)
+  // Optional logo overlay in center (with white safe-zone).
+  // SECURITY: only embed if it is a strict raster-image data URI. An arbitrary string here would
+  // be interpolated into the SVG `href` attribute and could break out to inject <script> (the SVG
+  // is served as image/svg+xml and renders in our origin). svg+xml is excluded (can carry script).
   let logoOverlay = "";
-  if (logoDataUrl) {
+  const SAFE_LOGO_RE = /^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/i;
+  if (logoDataUrl && SAFE_LOGO_RE.test(logoDataUrl.trim())) {
     const logoW = size * logoSizeRatio;
     const pad = logoW * 0.1;
     const cx = size / 2;

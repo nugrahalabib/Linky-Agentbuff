@@ -1,5 +1,20 @@
 import { z } from "zod";
 
+// Zod's `.url()` accepts ANY valid URL incl. `javascript:`/`data:`/`vbscript:`. For fields that end
+// up as a redirect target or an href/src, restrict to http(s) so they can never carry script.
+export const httpUrl = () =>
+  z.string().refine(
+    (v) => {
+      try {
+        const u = new URL(v);
+        return u.protocol === "http:" || u.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    { message: "URL harus diawali http:// atau https://" },
+  );
+
 // Login is Google OAuth-only — no signup/login/change-password schemas (see src/lib/oauth.ts).
 
 export const updateProfileSchema = z.object({
@@ -35,8 +50,8 @@ export const createLinkSchema = z.object({
   password: z.string().min(4).max(100).optional().or(z.literal("")),
   expiresAt: z.string().datetime().optional().or(z.literal("")),
   clickLimit: z.coerce.number().int().positive().optional().or(z.literal("")),
-  iosUrl: z.string().url().optional().or(z.literal("")),
-  androidUrl: z.string().url().optional().or(z.literal("")),
+  iosUrl: httpUrl().optional().or(z.literal("")),
+  androidUrl: httpUrl().optional().or(z.literal("")),
   utmSource: z.string().max(100).optional(),
   utmMedium: z.string().max(100).optional(),
   utmCampaign: z.string().max(100).optional(),
@@ -44,7 +59,7 @@ export const createLinkSchema = z.object({
   utmContent: z.string().max(100).optional(),
   ogTitle: z.string().max(200).optional(),
   ogDescription: z.string().max(500).optional(),
-  ogImage: z.string().url().optional().or(z.literal("")),
+  ogImage: httpUrl().optional().or(z.literal("")),
   cloak: z.boolean().optional(),
   folderId: z.string().max(20).optional().nullable(),
   domainId: z.string().max(20).optional().nullable(),

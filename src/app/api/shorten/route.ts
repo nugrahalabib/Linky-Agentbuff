@@ -8,6 +8,7 @@ import { generateSlug, isValidSlug } from "@/lib/slug";
 import { shortenAnonSchema } from "@/lib/validators";
 import { getFaviconUrl, hostOf, isValidUrl, normalizeUrl } from "@/lib/utils";
 import { checkUrlSafety } from "@/lib/safe-browsing";
+import { rateLimitCheck } from "@/lib/api-helpers";
 
 export async function POST(req: Request) {
   const ctx = await getSessionUser();
@@ -16,6 +17,12 @@ export async function POST(req: Request) {
       { error: "Silakan masuk dulu untuk membuat link." },
       { status: 401 },
     );
+  }
+
+  // Per-account cap so one user can't mass-create links (spam / safe-browsing-quota burn).
+  const rl = rateLimitCheck(`shorten:${ctx.user.id}`, 30, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Terlalu cepat membuat link. Coba lagi sebentar." }, { status: 429 });
   }
 
   let body: unknown;

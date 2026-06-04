@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Image from "next/image";
 import type { LinkyPageBlock, LinkyPageTheme } from "@/lib/db/schema";
+import { safeHref, safeImageSrc, isHexColor, safeCssBackground, YT_ID } from "@/lib/sanitize-url";
 
 const PRESETS: Record<string, { bg: string; cardBg: string; text: string; mutedText: string }> = {
   creator: {
@@ -37,6 +38,10 @@ const PRESETS: Record<string, { bg: string; cardBg: string; text: string; mutedT
   },
 };
 
+// Sanitizers live in @/lib/sanitize-url (shared with the write-side API so read & write agree).
+// A Linky Page is authored by its owner but rendered to the public, so every owner-controlled value
+// that lands in an href / src / inline style is a stored-XSS vector against visitors — allowlist.
+
 export function LinkyPageRenderer({
   pageId,
   title,
@@ -64,9 +69,9 @@ export function LinkyPageRenderer({
   }, [pageId]);
 
   const preset = PRESETS[theme.preset ?? "creator"] ?? PRESETS.creator;
-  const primary = theme.primary ?? "#4F46E5";
+  const primary = isHexColor(theme.primary) ? theme.primary.trim() : "#4F46E5";
   const buttonStyle = theme.buttonStyle ?? "filled";
-  const bg = background ?? preset.bg;
+  const bg = safeCssBackground(background) ?? preset.bg;
 
   const trackClick = (blockId: string) => {
     if (pageId === "preview") return; // editor preview — don't record clicks
@@ -99,11 +104,12 @@ export function LinkyPageRenderer({
       <div className="max-w-lg mx-auto space-y-4">
         {blocks.map((block) => {
           if (block.kind === "header") {
+            const safeAvatar = safeImageSrc(avatarUrl);
             return (
               <div key={block.id} className="text-center pb-2">
-                {avatarUrl && (
+                {safeAvatar && (
                   <div className="mx-auto h-24 w-24 rounded-full overflow-hidden ring-4 ring-white/40 mb-3">
-                    <Image src={avatarUrl} alt={title} width={96} height={96} className="object-cover h-full w-full" unoptimized />
+                    <Image src={safeAvatar} alt={title} width={96} height={96} className="object-cover h-full w-full" unoptimized />
                   </div>
                 )}
                 <h1 className="text-2xl font-bold">{title}</h1>
@@ -113,19 +119,20 @@ export function LinkyPageRenderer({
           }
           if (block.kind === "link") {
             const d = block.data as { label?: string; url?: string; emoji?: string };
-            if (!d.url) return null;
+            const href = safeHref(d.url);
+            if (!href) return null;
             return (
               <a
                 key={block.id}
-                href={d.url}
+                href={href}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackClick(block.id)}
                 className={btnBase}
-                style={btnStyle[buttonStyle]}
+                style={btnStyle[buttonStyle] ?? btnStyle.filled}
               >
                 {d.emoji && <span className="mr-2">{d.emoji}</span>}
-                {d.label ?? d.url}
+                {d.label ?? href}
               </a>
             );
           }
@@ -137,7 +144,7 @@ export function LinkyPageRenderer({
                 {items.map((s, i) => (
                   <a
                     key={i}
-                    href={s.url ?? `https://${s.platform}.com/${s.handle.replace(/^@/, "")}`}
+                    href={safeHref(s.url) ?? `https://${s.platform}.com/${s.handle.replace(/^@/, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackClick(block.id)}
@@ -164,7 +171,7 @@ export function LinkyPageRenderer({
           }
           if (block.kind === "youtube") {
             const d = block.data as { videoId?: string };
-            if (!d.videoId) return null;
+            if (!d.videoId || !YT_ID.test(d.videoId)) return null;
             return (
               <div key={block.id} className="rounded-[12px] overflow-hidden aspect-video">
                 <iframe
@@ -179,10 +186,11 @@ export function LinkyPageRenderer({
           }
           if (block.kind === "image") {
             const d = block.data as { url?: string; caption?: string };
-            if (!d.url) return null;
+            const imgSrc = safeImageSrc(d.url);
+            if (!imgSrc) return null;
             return (
               <div key={block.id} className="rounded-[12px] overflow-hidden">
-                <Image src={d.url} alt={d.caption ?? ""} width={600} height={400} unoptimized className="w-full h-auto" />
+                <Image src={imgSrc} alt={d.caption ?? ""} width={600} height={400} unoptimized className="w-full h-auto" />
               </div>
             );
           }

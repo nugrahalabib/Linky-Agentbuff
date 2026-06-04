@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { linkyPages } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
+import { safeImageSrc, safeCssBackground, isHexColor, sanitizeLinkyPageBlocks } from "@/lib/sanitize-url";
 
 const updateSchema = z.object({
   title: z.string().min(1).max(80).optional(),
@@ -42,10 +43,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.title !== undefined) patch.title = parsed.data.title;
   if (parsed.data.bio !== undefined) patch.bio = parsed.data.bio || null;
-  if (parsed.data.avatarUrl !== undefined) patch.avatarUrl = parsed.data.avatarUrl || null;
-  if (parsed.data.theme !== undefined) patch.theme = parsed.data.theme;
-  if (parsed.data.background !== undefined) patch.background = parsed.data.background || null;
-  if (parsed.data.blocks !== undefined) patch.blocks = parsed.data.blocks;
+  // Sanitize at rest — drop unsafe avatar src, CSS background, theme color, and block URLs.
+  if (parsed.data.avatarUrl !== undefined) patch.avatarUrl = safeImageSrc(parsed.data.avatarUrl) ?? null;
+  if (parsed.data.theme !== undefined) {
+    const theme = { ...(parsed.data.theme as Record<string, unknown>) };
+    if (theme.primary !== undefined && !isHexColor(theme.primary)) delete theme.primary;
+    patch.theme = theme;
+  }
+  if (parsed.data.background !== undefined) patch.background = safeCssBackground(parsed.data.background) ?? null;
+  if (parsed.data.blocks !== undefined) patch.blocks = sanitizeLinkyPageBlocks(parsed.data.blocks);
   if (parsed.data.published !== undefined) patch.published = parsed.data.published;
 
   await db.update(linkyPages).set(patch).where(eq(linkyPages.id, id));

@@ -5,22 +5,22 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { abuseReports, links } from "@/lib/db/schema";
 import { hashIp } from "@/lib/hash";
+import { clientIpFromHeaders } from "@/lib/utils";
+import { rateLimitCheck } from "@/lib/api-helpers";
 
 const schema = z.object({
   slug: z.string().min(1).max(50),
   reason: z.string().min(5).max(500),
 });
 
-function getClientIp(req: Request): string {
-  return (
-    req.headers.get("cf-connecting-ip") ??
-    req.headers.get("x-real-ip") ??
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "0.0.0.0"
-  );
-}
-
 export async function POST(req: Request) {
+  const ip = clientIpFromHeaders((k) => req.headers.get(k));
+  // Public, unauthenticated — cap to stop report-spam flooding the moderation queue.
+  const rl = rateLimitCheck(`abuse-report:${ip}`, 10, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Terlalu banyak laporan. Coba lagi sebentar." }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       id,
       linkId: link.id,
       reason: parsed.data.reason,
-      reporterIpHash: hashIp(getClientIp(req)),
+      reporterIpHash: hashIp(ip),
       status: "open",
     });
   return NextResponse.json({ ok: true, id });

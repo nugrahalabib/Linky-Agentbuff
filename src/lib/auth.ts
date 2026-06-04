@@ -6,18 +6,33 @@ import { db } from "@/lib/db";
 import { sessions, users, workspaces, type Session, type User } from "@/lib/db/schema";
 import { getActiveWorkspace as resolveActiveWorkspace } from "@/lib/workspace";
 import { hashIp } from "@/lib/hash";
+import { clientIpFromHeaders } from "@/lib/utils";
 import type { OAuthProfile } from "@/lib/oauth";
 
 const SESSION_COOKIE = "linky_session";
 const SESSION_DAYS = 30;
 
+const DEV_SECRET_MARKER = "dev-secret-linky-local-only";
+
 function getSecret(): Uint8Array {
   const s = process.env.AUTH_SECRET;
-  if (!s || s.length < 24) {
-    throw new Error("AUTH_SECRET environment variable must be set and at least 24 chars.");
+  if (!s) throw new Error("AUTH_SECRET environment variable must be set.");
+  if (process.env.NODE_ENV === "production") {
+    // Fail closed in prod: the dev placeholder is public (committed in .env examples + docs), so a
+    // deploy still using it would let anyone forge session JWTs. Require a real, ≥32-char secret.
+    if (s.includes(DEV_SECRET_MARKER)) {
+      throw new Error("AUTH_SECRET is still the development placeholder — set a real secret in production.");
+    }
+    if (s.length < 32) throw new Error("AUTH_SECRET must be at least 32 chars in production.");
+  } else if (s.length < 24) {
+    throw new Error("AUTH_SECRET must be at least 24 chars.");
   }
   return new TextEncoder().encode(s);
 }
+
+// Pin the signing algorithm so a token can never be verified under a different alg (alg-confusion /
+// "none" defense). Our sessions are always HS256.
+const JWT_VERIFY_OPTS: { algorithms: string[] } = { algorithms: ["HS256"] };
 
 /**
  * Resolve (or create) a local user from an OAuth profile. Matching order:
@@ -35,6 +50,13 @@ export async function findOrCreateOAuthUser(provider: string, profile: OAuthProf
   if (profile.email) {
     const byEmail = (await db.select().from(users).where(eq(users.email, profile.email)))[0];
     if (byEmail) {
+      // SECURITY: only auto-link an OAuth identity to a pre-existing account when the provider
+      // asserts the email is verified. Linking on an unverified email would let anyone who can make
+      // a provider (e.g. a misconfigured SSO connector) emit an arbitrary email take over that
+      // account. Fail closed — the OAuth callback turns this into a friendly signin error.
+      if (!profile.emailVerified) {
+        throw new Error("OAUTH_EMAIL_UNVERIFIED");
+      }
       await db.update(users)
         .set({
           oauthProvider: provider,
@@ -81,12 +103,7 @@ export async function createSession(userId: string): Promise<string> {
   try {
     const h = await headers();
     userAgent = (h.get("user-agent") ?? "").slice(0, 250) || null;
-    const ip =
-      h.get("cf-connecting-ip") ??
-      h.get("x-real-ip") ??
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "0.0.0.0";
-    ipHash = hashIp(ip);
+    ipHash = hashIp(clientIpFromHeaders((k) => h.get(k)));
   } catch {
     /* not in request scope */
   }
@@ -109,7 +126,7 @@ export async function destroySession(): Promise<void> {
   const token = jar.get(SESSION_COOKIE)?.value;
   if (token) {
     try {
-      const { payload } = await jwtVerify(token, getSecret());
+      const { payload } = await jwtVerify(token, getSecret(), JWT_VERIFY_OPTS);
       const sid = payload.sid as string | undefined;
       if (sid) await db.delete(sessions).where(eq(sessions.id, sid));
     } catch {
@@ -124,7 +141,7 @@ export async function getSessionUser(): Promise<{ user: User; session: Session }
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, getSecret());
+    const { payload } = await jwtVerify(token, getSecret(), JWT_VERIFY_OPTS);
     const sid = payload.sid as string;
     const session = (await db.select().from(sessions).where(eq(sessions.id, sid)))[0];
     if (!session) return null;

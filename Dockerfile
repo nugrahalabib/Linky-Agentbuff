@@ -11,7 +11,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV AUTH_SECRET=build-time-placeholder-change-at-runtime-please
-ENV DATABASE_URL=file:./linky.db
+# Build-time only: the postgres-js client parses this at import but never connects during `next build`
+# (all DB-touching routes are dynamic). Must be a syntactically valid postgres:// URL — NOT SQLite.
+ENV DATABASE_URL=postgres://build:build@127.0.0.1:5432/build
 ENV NEXT_PUBLIC_APP_URL=https://linky.agentbuff.id
 RUN npm run build
 
