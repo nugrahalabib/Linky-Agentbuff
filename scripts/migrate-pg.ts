@@ -175,6 +175,106 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS abuse_status_idx ON abuse_reports(status);
     `,
   },
+  {
+    // Brings the Postgres schema to parity with the live SQLite schema (schema.ts):
+    // OAuth identity, link OG/cloak/A-B + clicks.ab_variant, and the 6 tables added later.
+    id: "0001_pg_parity",
+    sql: `
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS image TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_subject TEXT;
+      CREATE UNIQUE INDEX IF NOT EXISTS users_oauth_idx ON users(oauth_provider, oauth_subject);
+
+      ALTER TABLE links ADD COLUMN IF NOT EXISTS ab_variants JSONB;
+      ALTER TABLE links ADD COLUMN IF NOT EXISTS og_title TEXT;
+      ALTER TABLE links ADD COLUMN IF NOT EXISTS og_description TEXT;
+      ALTER TABLE links ADD COLUMN IF NOT EXISTS og_image TEXT;
+      ALTER TABLE links ADD COLUMN IF NOT EXISTS cloak BOOLEAN NOT NULL DEFAULT false;
+      DROP INDEX IF EXISTS links_anon_owner_idx;
+
+      ALTER TABLE clicks ADD COLUMN IF NOT EXISTS ab_variant TEXT;
+
+      CREATE TABLE IF NOT EXISTS safe_browsing_cache (
+        url_hash TEXT PRIMARY KEY,
+        verdict TEXT NOT NULL,
+        threat_types TEXT,
+        checked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        expires_at TIMESTAMPTZ NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS sbc_expires_idx ON safe_browsing_cache(expires_at);
+
+      CREATE TABLE IF NOT EXISTS utm_recipes (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        utm_source TEXT, utm_medium TEXT, utm_campaign TEXT, utm_term TEXT, utm_content TEXT,
+        created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS utm_recipes_workspace_idx ON utm_recipes(workspace_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS utm_recipes_workspace_name_idx ON utm_recipes(workspace_id, name);
+
+      CREATE TABLE IF NOT EXISTS linky_pages (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        slug TEXT NOT NULL,
+        title TEXT NOT NULL,
+        bio TEXT,
+        avatar_url TEXT,
+        theme JSONB,
+        background TEXT,
+        blocks JSONB NOT NULL DEFAULT '[]'::jsonb,
+        views INTEGER NOT NULL DEFAULT 0,
+        published BOOLEAN NOT NULL DEFAULT true,
+        created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS linky_pages_slug_idx ON linky_pages(slug);
+      CREATE INDEX IF NOT EXISTS linky_pages_workspace_idx ON linky_pages(workspace_id);
+
+      CREATE TABLE IF NOT EXISTS linky_page_clicks (
+        id BIGSERIAL PRIMARY KEY,
+        page_id TEXT NOT NULL REFERENCES linky_pages(id) ON DELETE CASCADE,
+        block_id TEXT,
+        ts TIMESTAMPTZ NOT NULL DEFAULT now(),
+        referrer TEXT,
+        country TEXT,
+        ip_hash TEXT
+      );
+      CREATE INDEX IF NOT EXISTS lpc_page_idx ON linky_page_clicks(page_id, ts);
+
+      CREATE TABLE IF NOT EXISTS webhooks (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        secret TEXT NOT NULL,
+        events JSONB NOT NULL DEFAULT '["link.clicked"]'::jsonb,
+        active BOOLEAN NOT NULL DEFAULT true,
+        last_delivery_at TIMESTAMPTZ,
+        last_status_code INTEGER,
+        failure_count INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS webhooks_workspace_idx ON webhooks(workspace_id);
+
+      CREATE TABLE IF NOT EXISTS webhook_deliveries (
+        id TEXT PRIMARY KEY,
+        webhook_id TEXT NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+        event TEXT NOT NULL,
+        status_code INTEGER,
+        success BOOLEAN NOT NULL DEFAULT false,
+        duration_ms INTEGER,
+        error TEXT,
+        request_body TEXT,
+        response_snippet TEXT,
+        ts TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS whd_webhook_idx ON webhook_deliveries(webhook_id, ts);
+    `,
+  },
 ];
 
 async function run() {
