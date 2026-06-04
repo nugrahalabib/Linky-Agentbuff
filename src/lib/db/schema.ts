@@ -174,7 +174,6 @@ export const links = sqliteTable(
     index("links_workspace_idx").on(t.workspaceId),
     index("links_folder_idx").on(t.folderId),
     index("links_created_idx").on(t.createdAt),
-    index("links_anon_owner_idx").on(t.anonOwnerIp),
   ],
 );
 

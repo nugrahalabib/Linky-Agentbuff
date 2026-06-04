@@ -368,6 +368,14 @@ const MIGRATIONS = [
       CREATE UNIQUE INDEX IF NOT EXISTS users_oauth_idx ON users(oauth_provider, oauth_subject);
     `,
   },
+  {
+    // Drop the unused index on links.anon_owner_ip (anonymous shorten is rejected by design;
+    // the column stays for backward-compat, the index only added write overhead on NULLs).
+    id: "0013_drop_anon_index",
+    sql: `
+      DROP INDEX IF EXISTS links_anon_owner_idx;
+    `,
+  },
 ];
 
 function ensureDir(filePath: string): void {
