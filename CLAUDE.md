@@ -626,7 +626,8 @@ Two paths (lihat README + `docker-compose.yml`):
 - Set env: `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, dan optional ones
 - Untuk DB persistent perlu swap SQLite → Postgres (Supabase/Neon). Schema sudah ada di `src/lib/db/schema-pg.ts`, migrator di `scripts/migrate-pg.ts`. Tapi semua call site Drizzle masih sync — perlu refactor ke async dulu.
 
-VPS pemilik: **148.230.100.170** (Hostinger). Postgres ada di sana (`postgres_container`, role `linky_user`, DB `linky`) untuk masa depan.
+VPS pemilik: **148.230.100.170** (Hostinger), banyak project lain co-hosted di sana — jangan sentuh.
+**Postgres khusus Linky sudah disediakan (2026-06-04):** container **`linky_postgres`** (postgres:18, terisolasi, BUKAN `postgres_container` bersama), docker network **`linky-net`**, volume `linky_pgdata`, DB `linky`, role `linky_user`, bind `127.0.0.1:5434`. Schema sudah dimigrasikan penuh (18 tabel via `migrate-pg.ts` 0000+0001). Akses dari lokal: `ssh -L 5434:127.0.0.1:5434 agentbuff-vps`. App container harus join `linky-net` untuk konek `linky_postgres:5432`. **Runtime masih SQLite** sampai refactor sync→async call-site selesai (lihat Roadmap).
 
 ---
 
