@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 export default async function FoldersPage() {
   const user = await requireUser();
   const ws = await ensureWorkspace(user.id);
-  const all = db.select().from(folders).where(eq(folders.workspaceId, ws.id)).all();
+  const all = await db.select().from(folders).where(eq(folders.workspaceId, ws.id));
   return (
     <div className="p-6 sm:p-8 max-w-4xl mx-auto w-full">
       <div className="mb-6">

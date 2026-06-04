@@ -14,11 +14,10 @@ export async function OPTIONS() {
 }
 
 async function loadOwned(id: string, auth: AuthedRequest) {
-  const link = db
+  const link = (await db
     .select()
     .from(links)
-    .where(and(eq(links.id, id), eq(links.workspaceId, auth.workspace.id)))
-    .get();
+    .where(and(eq(links.id, id), eq(links.workspaceId, auth.workspace.id))))[0];
   return link ?? null;
 }
 
@@ -62,11 +61,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof data.cloak === "boolean") patch.cloak = data.cloak;
   if (data.folderId !== undefined) {
     if (data.folderId) {
-      const folder = db
+      const folder = (await db
         .select({ id: folders.id })
         .from(folders)
-        .where(and(eq(folders.id, data.folderId), eq(folders.workspaceId, a.auth.workspace.id)))
-        .get();
+        .where(and(eq(folders.id, data.folderId), eq(folders.workspaceId, a.auth.workspace.id))))[0];
       if (!folder) return apiError("not_found", "Folder tidak ditemukan.", 404, a.auth.rateHeaders);
       patch.folderId = data.folderId;
     } else {
@@ -93,23 +91,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (data.utmContent) utm.utm_content = data.utmContent;
     patch.utmParams = utm;
   }
-  db.update(links).set(patch).where(eq(links.id, id)).run();
+  await db.update(links).set(patch).where(eq(links.id, id));
   // Replace tags when tagIds is provided (workspace-scoped); omitting tagIds leaves tags unchanged.
   if (data.tagIds !== undefined) {
-    db.delete(linkTags).where(eq(linkTags.linkId, id)).run();
+    await db.delete(linkTags).where(eq(linkTags.linkId, id));
     if (data.tagIds.length > 0) {
-      const validTagIds = db
+      const validTagIds = (await db
         .select({ id: tagsTable.id })
         .from(tagsTable)
-        .where(and(eq(tagsTable.workspaceId, a.auth.workspace.id), inArray(tagsTable.id, data.tagIds)))
-        .all()
+        .where(and(eq(tagsTable.workspaceId, a.auth.workspace.id), inArray(tagsTable.id, data.tagIds))))
         .map((t) => t.id);
       for (const tagId of validTagIds) {
-        db.insert(linkTags).values({ linkId: id, tagId }).run();
+        await db.insert(linkTags).values({ linkId: id, tagId });
       }
     }
   }
-  const updated = db.select().from(links).where(eq(links.id, id)).get();
+  const updated = (await db.select().from(links).where(eq(links.id, id)))[0];
   if (updated) {
     fireWebhooks(a.auth.workspace.id, "link.updated", {
       link_id: updated.id,
@@ -128,7 +125,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const link = await loadOwned(id, a.auth);
   if (!link) return apiError("not_found", "Link tidak ditemukan.", 404, a.auth.rateHeaders);
   const snapshot = { link_id: link.id, slug: link.slug, destination_url: link.destinationUrl };
-  db.delete(links).where(eq(links.id, id)).run();
+  await db.delete(links).where(eq(links.id, id));
   fireWebhooks(a.auth.workspace.id, "link.deleted", snapshot);
   return apiOk({ ok: true }, { extraHeaders: a.auth.rateHeaders });
 }

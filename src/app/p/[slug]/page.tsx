@@ -15,7 +15,7 @@ async function unlockAction(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
   const password = String(formData.get("password") ?? "");
   const h = await headers();
-  const link = resolveLinkForHost(h.get("host"), slug);
+  const link = await resolveLinkForHost(h.get("host"), slug);
   if (!link || !link.passwordHash) redirect("/not-found");
 
   const ok = await bcrypt.compare(password, link.passwordHash);
@@ -52,7 +52,7 @@ export default async function PasswordGatePage(props: {
   const { slug } = await props.params;
   const { error } = await props.searchParams;
   const h = await headers();
-  const link = resolveLinkForHost(h.get("host"), slug);
+  const link = await resolveLinkForHost(h.get("host"), slug);
   if (!link) redirect("/not-found");
   const status = checkLinkStatus(link);
   if (status.kind === "expired" || status.kind === "click_limit") redirect("/expired");

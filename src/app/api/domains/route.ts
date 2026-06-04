@@ -22,12 +22,11 @@ export async function GET() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const rows = db
+  const rows = await db
     .select()
     .from(domains)
     .where(eq(domains.workspaceId, ws.id))
-    .orderBy(desc(domains.createdAt))
-    .all();
+    .orderBy(desc(domains.createdAt));
   return NextResponse.json({ domains: rows });
 }
 
@@ -41,14 +40,13 @@ export async function POST(req: Request) {
 
   const hostname = parsed.data.hostname.trim().toLowerCase();
   // hostname is globally unique (a host can only belong to one workspace).
-  const existing = db.select({ id: domains.id }).from(domains).where(eq(domains.hostname, hostname)).get();
+  const existing = (await db.select({ id: domains.id }).from(domains).where(eq(domains.hostname, hostname)))[0];
   if (existing) return NextResponse.json({ error: "Domain ini sudah terdaftar." }, { status: 409 });
 
   const id = nanoid(14);
   const verificationToken = `linky-verify-${crypto.randomBytes(12).toString("hex")}`;
-  db.insert(domains)
-    .values({ id, workspaceId: ws.id, hostname, verificationToken, verified: false })
-    .run();
-  const created = db.select().from(domains).where(eq(domains.id, id)).get();
+  await db.insert(domains)
+    .values({ id, workspaceId: ws.id, hostname, verificationToken, verified: false });
+  const created = (await db.select().from(domains).where(eq(domains.id, id)))[0];
   return NextResponse.json({ domain: created });
 }

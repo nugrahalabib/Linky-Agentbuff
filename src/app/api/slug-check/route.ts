@@ -12,10 +12,9 @@ export async function GET(req: Request) {
   const slug = (url.searchParams.get("slug") ?? "").trim();
   if (!slug) return NextResponse.json({ available: false, reason: "empty" });
   if (!isValidSlug(slug)) return NextResponse.json({ available: false, reason: "invalid" });
-  const exists = db
+  const exists = (await db
     .select({ id: links.id })
     .from(links)
-    .where(and(eq(links.slug, slug), isNull(links.domainId)))
-    .get();
+    .where(and(eq(links.slug, slug), isNull(links.domainId))))[0];
   return NextResponse.json({ available: !exists, reason: exists ? "taken" : "ok" });
 }

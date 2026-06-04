@@ -21,13 +21,12 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "50"), 1), 200);
   const archived = url.searchParams.get("archived") === "1";
-  const rows = db
+  const rows = await db
     .select()
     .from(links)
     .where(and(eq(links.workspaceId, a.auth.workspace.id), eq(links.archived, archived)))
     .orderBy(desc(links.createdAt))
-    .limit(limit)
-    .all();
+    .limit(limit);
   return apiOk(
     { data: rows.map(serializeLink), count: rows.length },
     { extraHeaders: a.auth.rateHeaders },
@@ -54,31 +53,29 @@ export async function POST(req: Request) {
   // Optional custom domain (must belong to the key's workspace + be verified).
   let domainId: string | null = null;
   if (parsed.data.domainId) {
-    const dom = db
+    const dom = (await db
       .select({ id: domains.id, verified: domains.verified })
       .from(domains)
-      .where(and(eq(domains.id, parsed.data.domainId), eq(domains.workspaceId, a.auth.workspace.id)))
-      .get();
+      .where(and(eq(domains.id, parsed.data.domainId), eq(domains.workspaceId, a.auth.workspace.id))))[0];
     if (!dom) return apiError("not_found", "Domain tidak ditemukan.", 404, a.auth.rateHeaders);
     if (!dom.verified) return apiError("validation_error", "Domain belum terverifikasi.", 400, a.auth.rateHeaders);
     domainId = dom.id;
   }
-  const slugTaken = (s: string) =>
-    db
+  const slugTaken = async (s: string) =>
+    (await db
       .select({ id: links.id })
       .from(links)
-      .where(domainId ? and(eq(links.slug, s), eq(links.domainId, domainId)) : and(eq(links.slug, s), isNull(links.domainId)))
-      .get();
+      .where(domainId ? and(eq(links.slug, s), eq(links.domainId, domainId)) : and(eq(links.slug, s), isNull(links.domainId))))[0];
 
   let slug = parsed.data.customSlug?.trim() || generateSlug();
   if (parsed.data.customSlug) {
     if (!isValidSlug(slug)) {
       return apiError("invalid_slug", "Slug hanya a-z 0-9 - _ (2–50 char), bukan reserved.", 400, a.auth.rateHeaders);
     }
-    if (slugTaken(slug)) return apiError("slug_taken", "Slug sudah digunakan.", 409, a.auth.rateHeaders);
+    if (await slugTaken(slug)) return apiError("slug_taken", "Slug sudah digunakan.", 409, a.auth.rateHeaders);
   } else {
     for (let i = 0; i < 5; i++) {
-      if (!slugTaken(slug)) break;
+      if (!(await slugTaken(slug))) break;
       slug = generateSlug();
     }
   }
@@ -94,7 +91,7 @@ export async function POST(req: Request) {
   if (parsed.data.utmTerm) utm.utm_term = parsed.data.utmTerm;
   if (parsed.data.utmContent) utm.utm_content = parsed.data.utmContent;
 
-  db.insert(links)
+  await db.insert(links)
     .values({
       id,
       workspaceId: a.auth.workspace.id,
@@ -116,23 +113,21 @@ export async function POST(req: Request) {
       cloak: Boolean(parsed.data.cloak),
       folderId: parsed.data.folderId || null,
       createdBy: a.auth.key.userId,
-    })
-    .run();
+    });
 
   // Persist tags (workspace-scoped so a key can't attach another workspace's tags).
   if (parsed.data.tagIds && parsed.data.tagIds.length > 0) {
-    const validTagIds = db
+    const validTagIds = (await db
       .select({ id: tagsTable.id })
       .from(tagsTable)
-      .where(and(eq(tagsTable.workspaceId, a.auth.workspace.id), inArray(tagsTable.id, parsed.data.tagIds)))
-      .all()
+      .where(and(eq(tagsTable.workspaceId, a.auth.workspace.id), inArray(tagsTable.id, parsed.data.tagIds))))
       .map((t) => t.id);
     for (const tagId of validTagIds) {
-      db.insert(linkTags).values({ linkId: id, tagId }).run();
+      await db.insert(linkTags).values({ linkId: id, tagId });
     }
   }
 
-  const created = db.select().from(links).where(eq(links.id, id)).get();
+  const created = (await db.select().from(links).where(eq(links.id, id)))[0];
   if (created) {
     fireWebhooks(a.auth.workspace.id, "link.created", {
       link_id: created.id,

@@ -19,7 +19,7 @@ export async function GET() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const rows = db.select().from(folders).where(eq(folders.workspaceId, ws.id)).all();
+  const rows = await db.select().from(folders).where(eq(folders.workspaceId, ws.id));
   return NextResponse.json({ folders: rows });
 }
 
@@ -32,24 +32,22 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });
 
   if (parsed.data.parentId) {
-    const parent = db
+    const parent = (await db
       .select({ id: folders.id })
       .from(folders)
-      .where(and(eq(folders.id, parsed.data.parentId), eq(folders.workspaceId, ws.id)))
-      .get();
+      .where(and(eq(folders.id, parsed.data.parentId), eq(folders.workspaceId, ws.id))))[0];
     if (!parent) return NextResponse.json({ error: "Parent folder tidak ditemukan." }, { status: 400 });
   }
 
   const id = nanoid(12);
-  db.insert(folders)
+  await db.insert(folders)
     .values({
       id,
       workspaceId: ws.id,
       name: parsed.data.name,
       parentId: parsed.data.parentId ?? null,
       color: parsed.data.color ?? "#94A3B8",
-    })
-    .run();
-  const created = db.select().from(folders).where(eq(folders.id, id)).get();
+    });
+  const created = (await db.select().from(folders).where(eq(folders.id, id)))[0];
   return NextResponse.json({ folder: created });
 }

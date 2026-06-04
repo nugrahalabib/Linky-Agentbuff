@@ -39,7 +39,7 @@ async function owned(id: string) {
   const ctx = await getSessionUser();
   if (!ctx) return { err: NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 }) } as const;
   const ws = await ensureWorkspace(ctx.user.id);
-  const link = db.select().from(links).where(and(eq(links.id, id), eq(links.workspaceId, ws.id))).get();
+  const link = (await db.select().from(links).where(and(eq(links.id, id), eq(links.workspaceId, ws.id))))[0];
   if (!link) return { err: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) } as const;
   return { link, ws } as const;
 }
@@ -58,26 +58,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     for (const v of parsed.data.variants) {
       if (!isValidUrl(v.url)) return NextResponse.json({ error: `URL invalid: ${v.url}` }, { status: 400 });
     }
-    db.update(links)
+    await db.update(links)
       .set({ abVariants: parsed.data.variants, updatedAt: new Date() })
-      .where(eq(links.id, id))
-      .run();
+      .where(eq(links.id, id));
   } else if (parsed.data.kind === "geo") {
     for (const v of parsed.data.rules) {
       if (!isValidUrl(v.url)) return NextResponse.json({ error: `URL invalid: ${v.url}` }, { status: 400 });
     }
-    db.update(links)
+    await db.update(links)
       .set({ geoRules: parsed.data.rules, updatedAt: new Date() })
-      .where(eq(links.id, id))
-      .run();
+      .where(eq(links.id, id));
   } else if (parsed.data.kind === "clear") {
     if (parsed.data.type === "ab") {
-      db.update(links).set({ abVariants: null, updatedAt: new Date() }).where(eq(links.id, id)).run();
+      await db.update(links).set({ abVariants: null, updatedAt: new Date() }).where(eq(links.id, id));
     } else {
-      db.update(links).set({ geoRules: null, updatedAt: new Date() }).where(eq(links.id, id)).run();
+      await db.update(links).set({ geoRules: null, updatedAt: new Date() }).where(eq(links.id, id));
     }
   }
 
-  const updated = db.select().from(links).where(eq(links.id, id)).get();
+  const updated = (await db.select().from(links).where(eq(links.id, id)))[0];
   return NextResponse.json({ link: updated });
 }

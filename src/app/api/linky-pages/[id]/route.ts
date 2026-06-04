@@ -19,7 +19,7 @@ async function owned(id: string) {
   const ctx = await getSessionUser();
   if (!ctx) return { err: NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 }) } as const;
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db.select().from(linkyPages).where(and(eq(linkyPages.id, id), eq(linkyPages.workspaceId, ws.id))).get();
+  const row = (await db.select().from(linkyPages).where(and(eq(linkyPages.id, id), eq(linkyPages.workspaceId, ws.id))))[0];
   if (!row) return { err: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) } as const;
   return { row } as const;
 }
@@ -48,8 +48,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (parsed.data.blocks !== undefined) patch.blocks = parsed.data.blocks;
   if (parsed.data.published !== undefined) patch.published = parsed.data.published;
 
-  db.update(linkyPages).set(patch).where(eq(linkyPages.id, id)).run();
-  const updated = db.select().from(linkyPages).where(eq(linkyPages.id, id)).get();
+  await db.update(linkyPages).set(patch).where(eq(linkyPages.id, id));
+  const updated = (await db.select().from(linkyPages).where(eq(linkyPages.id, id)))[0];
   return NextResponse.json({ page: updated });
 }
 
@@ -57,6 +57,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const r = await owned(id);
   if ("err" in r) return r.err;
-  db.delete(linkyPages).where(eq(linkyPages.id, id)).run();
+  await db.delete(linkyPages).where(eq(linkyPages.id, id));
   return NextResponse.json({ ok: true });
 }

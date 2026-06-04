@@ -19,7 +19,7 @@ export async function DELETE(req: Request) {
   }
 
   // FK cascades will remove sessions, workspaces, links, folders, tags, etc.
-  db.delete(users).where(eq(users.id, ctx.user.id)).run();
+  await db.delete(users).where(eq(users.id, ctx.user.id));
   await destroySession();
   return NextResponse.json({ ok: true });
 }

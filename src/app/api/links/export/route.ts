@@ -9,12 +9,11 @@ export async function GET() {
   if (!ctx) return new Response(JSON.stringify({ error: "UNAUTHORIZED" }), { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
 
-  const rows = db
+  const rows = await db
     .select()
     .from(links)
     .where(and(eq(links.workspaceId, ws.id), eq(links.archived, false)))
-    .orderBy(desc(links.createdAt))
-    .all();
+    .orderBy(desc(links.createdAt));
 
   const data = rows.map((l) => ({
     slug: l.slug,

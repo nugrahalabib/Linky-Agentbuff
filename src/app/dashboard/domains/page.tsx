@@ -7,7 +7,7 @@ import { DomainManager } from "@/components/domain-manager";
 export default async function DomainsPage() {
   const user = await requireUser();
   const ws = await ensureWorkspace(user.id);
-  const rows = db.select().from(domains).where(eq(domains.workspaceId, ws.id)).all();
+  const rows = await db.select().from(domains).where(eq(domains.workspaceId, ws.id));
   const appHost = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709")
     .replace(/^https?:\/\//, "")
     .split("/")[0];

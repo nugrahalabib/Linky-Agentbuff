@@ -9,9 +9,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db.select().from(domains).where(and(eq(domains.id, id), eq(domains.workspaceId, ws.id))).get();
+  const row = (await db.select().from(domains).where(and(eq(domains.id, id), eq(domains.workspaceId, ws.id))))[0];
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   // links.domain_id has ON DELETE SET NULL, so links on this domain fall back to the default domain.
-  db.delete(domains).where(eq(domains.id, id)).run();
+  await db.delete(domains).where(eq(domains.id, id));
   return NextResponse.json({ ok: true });
 }

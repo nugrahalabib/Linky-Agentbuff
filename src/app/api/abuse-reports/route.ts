@@ -25,22 +25,20 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
 
-  const link = db
+  const link = (await db
     .select({ id: links.id })
     .from(links)
-    .where(and(eq(links.slug, parsed.data.slug), isNull(links.domainId)))
-    .get();
+    .where(and(eq(links.slug, parsed.data.slug), isNull(links.domainId))))[0];
   if (!link) return NextResponse.json({ error: "Link tidak ditemukan." }, { status: 404 });
 
   const id = nanoid(14);
-  db.insert(abuseReports)
+  await db.insert(abuseReports)
     .values({
       id,
       linkId: link.id,
       reason: parsed.data.reason,
       reporterIpHash: hashIp(getClientIp(req)),
       status: "open",
-    })
-    .run();
+    });
   return NextResponse.json({ ok: true, id });
 }

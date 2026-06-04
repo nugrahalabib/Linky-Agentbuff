@@ -7,9 +7,9 @@ import { getSessionUser } from "@/lib/auth";
 export async function POST() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  const r = db
+  const r = await db
     .delete(sessions)
     .where(and(eq(sessions.userId, ctx.user.id), ne(sessions.id, ctx.session.id)))
-    .run();
-  return NextResponse.json({ ok: true, revoked: r.changes });
+    .returning({ id: sessions.id });
+  return NextResponse.json({ ok: true, revoked: r.length });
 }

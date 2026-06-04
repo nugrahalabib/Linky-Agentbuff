@@ -15,15 +15,14 @@ export async function GET(req: Request) {
 
   let validLinkId: string | null = null;
   if (linkId) {
-    const owned = db
+    const owned = (await db
       .select({ id: links.id })
       .from(links)
-      .where(and(eq(links.id, linkId), eq(links.workspaceId, workspace.id)))
-      .get();
+      .where(and(eq(links.id, linkId), eq(links.workspaceId, workspace.id))))[0];
     if (owned) validLinkId = linkId;
   }
 
-  const data = getWorkspaceAnalytics(workspace.id, days, validLinkId);
+  const data = await getWorkspaceAnalytics(workspace.id, days, validLinkId);
   return NextResponse.json({
     ...data,
     last7Days: fillMissingDays(data.last7Days, days <= 7 ? 7 : days <= 30 ? 30 : 90),

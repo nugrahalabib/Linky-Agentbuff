@@ -9,7 +9,7 @@ export async function authenticateApiKey(req: Request) {
   if (!m) return null;
   const token = m[1];
   const hash = sha256(token);
-  const key = db
+  const key = (await db
     .select()
     .from(apiKeys)
     .where(
@@ -17,14 +17,13 @@ export async function authenticateApiKey(req: Request) {
         eq(apiKeys.keyHash, hash),
         or(isNull(apiKeys.expiresAt), gt(apiKeys.expiresAt, new Date())),
       ),
-    )
-    .get();
+    ))[0];
   if (!key) return null;
-  const ws = db.select().from(workspaces).where(eq(workspaces.id, key.workspaceId)).get();
+  const ws = (await db.select().from(workspaces).where(eq(workspaces.id, key.workspaceId)))[0];
   if (!ws) return null;
   // Update last-used asynchronously
   try {
-    db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id)).run();
+    await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id));
   } catch {
     /* non-fatal */
   }

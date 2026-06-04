@@ -18,21 +18,21 @@ export async function GET() {
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
 
-  const myLinks = db.select().from(links).where(eq(links.workspaceId, ws.id)).all();
+  const myLinks = await db.select().from(links).where(eq(links.workspaceId, ws.id));
   const linkIds = myLinks.map((l) => l.id);
-  const myFolders = db.select().from(folders).where(eq(folders.workspaceId, ws.id)).all();
-  const myTags = db.select().from(tags).where(eq(tags.workspaceId, ws.id)).all();
+  const myFolders = await db.select().from(folders).where(eq(folders.workspaceId, ws.id));
+  const myTags = await db.select().from(tags).where(eq(tags.workspaceId, ws.id));
   const myLinkTags = linkIds.length
-    ? db.select().from(linkTags).where(inArray(linkTags.linkId, linkIds)).all()
+    ? await db.select().from(linkTags).where(inArray(linkTags.linkId, linkIds))
     : [];
   const myClicks = linkIds.length
-    ? db.select().from(clicks).where(inArray(clicks.linkId, linkIds)).all()
+    ? await db.select().from(clicks).where(inArray(clicks.linkId, linkIds))
     : [];
-  const myUtm = db.select().from(utmRecipes).where(eq(utmRecipes.workspaceId, ws.id)).all();
-  const myPages = db.select().from(linkyPages).where(eq(linkyPages.workspaceId, ws.id)).all();
+  const myUtm = await db.select().from(utmRecipes).where(eq(utmRecipes.workspaceId, ws.id));
+  const myPages = await db.select().from(linkyPages).where(eq(linkyPages.workspaceId, ws.id));
   const pageIds = myPages.map((p) => p.id);
   const myPageClicks = pageIds.length
-    ? db.select().from(linkyPageClicks).where(inArray(linkyPageClicks.pageId, pageIds)).all()
+    ? await db.select().from(linkyPageClicks).where(inArray(linkyPageClicks.pageId, pageIds))
     : [];
 
   const payload = {

@@ -9,32 +9,27 @@ export async function GET() {
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
 
-  const linksRow = db
+  const linksRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(links)
-    .where(eq(links.workspaceId, ws.id))
-    .get();
-  const clicksRow = db
+    .where(eq(links.workspaceId, ws.id)))[0];
+  const clicksRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(clicks)
     .innerJoin(links, eq(links.id, clicks.linkId))
-    .where(eq(links.workspaceId, ws.id))
-    .get();
-  const pagesRow = db
+    .where(eq(links.workspaceId, ws.id)))[0];
+  const pagesRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(linkyPages)
-    .where(eq(linkyPages.workspaceId, ws.id))
-    .get();
-  const keysRow = db
+    .where(eq(linkyPages.workspaceId, ws.id)))[0];
+  const keysRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(apiKeys)
-    .where(eq(apiKeys.workspaceId, ws.id))
-    .get();
-  const hooksRow = db
+    .where(eq(apiKeys.workspaceId, ws.id)))[0];
+  const hooksRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(webhooks)
-    .where(eq(webhooks.workspaceId, ws.id))
-    .get();
+    .where(eq(webhooks.workspaceId, ws.id)))[0];
 
   return NextResponse.json({
     member_since: ctx.user.createdAt,

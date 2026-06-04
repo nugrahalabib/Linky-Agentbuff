@@ -13,7 +13,7 @@ async function loadOwned(id: string) {
   const ctx = await getSessionUser();
   if (!ctx) return { err: NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 }) } as const;
   const workspace = await ensureWorkspace(ctx.user.id);
-  const link = db.select().from(links).where(and(eq(links.id, id), eq(links.workspaceId, workspace.id))).get();
+  const link = (await db.select().from(links).where(and(eq(links.id, id), eq(links.workspaceId, workspace.id))))[0];
   if (!link) return { err: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) } as const;
   return { link, workspace, user: ctx.user } as const;
 }
@@ -64,11 +64,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof data.cloak === "boolean") patch.cloak = data.cloak;
   if (data.folderId !== undefined) {
     if (data.folderId) {
-      const folder = db
-        .select({ id: folders.id })
-        .from(folders)
-        .where(and(eq(folders.id, data.folderId), eq(folders.workspaceId, r.workspace.id)))
-        .get();
+      const folder = (
+        await db
+          .select({ id: folders.id })
+          .from(folders)
+          .where(and(eq(folders.id, data.folderId), eq(folders.workspaceId, r.workspace.id)))
+      )[0];
       if (!folder) return NextResponse.json({ error: "Folder tidak ditemukan." }, { status: 400 });
       patch.folderId = data.folderId;
     } else {
@@ -97,8 +98,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     patch.utmParams = utm;
   }
 
-  db.update(links).set(patch).where(eq(links.id, id)).run();
-  const updated = db.select().from(links).where(eq(links.id, id)).get();
+  await db.update(links).set(patch).where(eq(links.id, id));
+  const updated = (await db.select().from(links).where(eq(links.id, id)))[0];
   if (updated && r.workspace.id) {
     fireWebhooks(r.workspace.id, "link.updated", {
       link_id: updated.id,
@@ -116,7 +117,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const r = await loadOwned(id);
   if ("err" in r) return r.err;
   const snapshot = { link_id: r.link.id, slug: r.link.slug, destination_url: r.link.destinationUrl };
-  db.delete(links).where(eq(links.id, id)).run();
+  await db.delete(links).where(eq(links.id, id));
   fireWebhooks(r.workspace.id, "link.deleted", snapshot);
   return NextResponse.json({ ok: true });
 }

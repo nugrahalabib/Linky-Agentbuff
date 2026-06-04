@@ -10,10 +10,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const { id } = await params;
   const workspace = await ensureWorkspace(ctx.user.id);
-  const owned = db.select().from(links).where(and(eq(links.id, id), eq(links.workspaceId, workspace.id))).get();
+  const owned = (await db.select().from(links).where(and(eq(links.id, id), eq(links.workspaceId, workspace.id))))[0];
   if (!owned) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const url = new URL(req.url);
   const days = Math.min(Math.max(Number(url.searchParams.get("days") ?? "30"), 1), 365);
-  const data = getLinkAnalytics(id, days);
+  const data = await getLinkAnalytics(id, days);
   return NextResponse.json({ ...data, last7Days: fillMissingDays(data.last7Days, 7) });
 }

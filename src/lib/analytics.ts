@@ -40,73 +40,67 @@ function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 }
 
-function safeRows<T>(fn: () => T[]): T[] {
+async function safeRows<T>(fn: () => Promise<T[]>): Promise<T[]> {
   try {
-    return fn();
+    return await fn();
   } catch {
     return [] as T[];
   }
 }
 
-export function getLinkAnalytics(linkId: string, days = 30): AnalyticsOverview {
+export async function getLinkAnalytics(linkId: string, days = 30): Promise<AnalyticsOverview> {
   const since = daysAgo(days);
   const baseConds = [eq(clicks.linkId, linkId), eq(clicks.isBot, false), gte(clicks.ts, since)];
-  const totalRow = db.select({ n: sql<number>`count(*)` }).from(clicks).where(and(...baseConds)).get();
-  const uniqueRow = db
+  const totalRow = (await db.select({ n: sql<number>`count(*)` }).from(clicks).where(and(...baseConds)))[0];
+  const uniqueRow = (await db
     .select({ n: sql<number>`count(distinct ${clicks.ipHash})` })
     .from(clicks)
-    .where(and(...baseConds))
-    .get();
-  const trend = safeRows(() =>
-    db
+    .where(and(...baseConds)))[0];
+  const trend = await safeRows(async () =>
+    await db
       .select({
-        date: sql<string>`date(${clicks.ts} / 1000, 'unixepoch')`,
+        date: sql<string>`to_char(${clicks.ts} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
         clicks: sql<number>`count(*)`,
       })
       .from(clicks)
       .where(and(eq(clicks.linkId, linkId), eq(clicks.isBot, false), gte(clicks.ts, since)))
-      .groupBy(sql`date(${clicks.ts} / 1000, 'unixepoch')`)
-      .all(),
+      .groupBy(sql`to_char(${clicks.ts} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`),
   );
-  const countries = safeRows(() =>
-    db
+  const countries = await safeRows(async () =>
+    await db
       .select({ country: clicks.country, clicks: sql<number>`count(*)` })
       .from(clicks)
       .where(and(...baseConds))
       .groupBy(clicks.country)
       .orderBy(sql`count(*) desc`)
-      .limit(10)
-      .all(),
+      .limit(10),
   );
-  const referrers = safeRows(() =>
-    db
+  const referrers = await safeRows(async () =>
+    await db
       .select({ referrer: clicks.referrer, clicks: sql<number>`count(*)` })
       .from(clicks)
       .where(and(...baseConds))
       .groupBy(clicks.referrer)
       .orderBy(sql`count(*) desc`)
-      .limit(10)
-      .all(),
+      .limit(10),
   );
-  const devices = safeRows(() =>
-    db
+  const devices = await safeRows(async () =>
+    await db
       .select({ device: clicks.device, clicks: sql<number>`count(*)` })
       .from(clicks)
       .where(and(...baseConds))
       .groupBy(clicks.device)
       .orderBy(sql`count(*) desc`)
-      .limit(10)
-      .all(),
+      .limit(10),
   );
-  const browsers = safeRows(() =>
-    db
+  const browsers = await safeRows(async () =>
+    await db
       .select({ browser: clicks.browser, clicks: sql<number>`count(*)` })
       .from(clicks)
       .where(and(...baseConds))
       .groupBy(clicks.browser)
       .orderBy(sql`count(*) desc`)
-      .limit(10)
-      .all(),
+      .limit(10),
   );
   const totalClicks = totalRow?.n ?? 0;
 
@@ -128,86 +122,78 @@ export function getLinkAnalytics(linkId: string, days = 30): AnalyticsOverview {
  * When `linkId` is set, behaves like getLinkAnalytics but verifies the link belongs
  * to the workspace (caller should already check ownership).
  */
-export function getWorkspaceAnalytics(workspaceId: string, days = 30, linkId?: string | null): AnalyticsOverview {
+export async function getWorkspaceAnalytics(workspaceId: string, days = 30, linkId?: string | null): Promise<AnalyticsOverview> {
   const since = daysAgo(days);
   const conds = [eq(links.workspaceId, workspaceId), eq(clicks.isBot, false), gte(clicks.ts, since)];
   if (linkId) conds.push(eq(clicks.linkId, linkId));
 
-  const totalRow = db
+  const totalRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(clicks)
     .innerJoin(links, eq(links.id, clicks.linkId))
-    .where(and(...conds))
-    .get();
-  const uniqueRow = db
+    .where(and(...conds)))[0];
+  const uniqueRow = (await db
     .select({ n: sql<number>`count(distinct ${clicks.ipHash})` })
     .from(clicks)
     .innerJoin(links, eq(links.id, clicks.linkId))
-    .where(and(...conds))
-    .get();
-  const trend = safeRows(() =>
-    db
+    .where(and(...conds)))[0];
+  const trend = await safeRows(async () =>
+    await db
       .select({
-        date: sql<string>`date(${clicks.ts} / 1000, 'unixepoch')`,
+        date: sql<string>`to_char(${clicks.ts} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
         clicks: sql<number>`count(*)`,
       })
       .from(clicks)
       .innerJoin(links, eq(links.id, clicks.linkId))
       .where(and(...conds))
-      .groupBy(sql`date(${clicks.ts} / 1000, 'unixepoch')`)
-      .all(),
+      .groupBy(sql`to_char(${clicks.ts} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`),
   );
-  const countries = safeRows(() =>
-    db
+  const countries = await safeRows(async () =>
+    await db
       .select({ country: clicks.country, clicks: sql<number>`count(*)` })
       .from(clicks)
       .innerJoin(links, eq(links.id, clicks.linkId))
       .where(and(...conds))
       .groupBy(clicks.country)
       .orderBy(sql`count(*) desc`)
-      .limit(10)
-      .all(),
+      .limit(10),
   );
-  const referrers = safeRows(() =>
-    db
+  const referrers = await safeRows(async () =>
+    await db
       .select({ referrer: clicks.referrer, clicks: sql<number>`count(*)` })
       .from(clicks)
       .innerJoin(links, eq(links.id, clicks.linkId))
       .where(and(...conds))
       .groupBy(clicks.referrer)
       .orderBy(sql`count(*) desc`)
-      .limit(10)
-      .all(),
+      .limit(10),
   );
-  const devices = safeRows(() =>
-    db
+  const devices = await safeRows(async () =>
+    await db
       .select({ device: clicks.device, clicks: sql<number>`count(*)` })
       .from(clicks)
       .innerJoin(links, eq(links.id, clicks.linkId))
       .where(and(...conds))
       .groupBy(clicks.device)
       .orderBy(sql`count(*) desc`)
-      .limit(10)
-      .all(),
+      .limit(10),
   );
-  const browsers = safeRows(() =>
-    db
+  const browsers = await safeRows(async () =>
+    await db
       .select({ browser: clicks.browser, clicks: sql<number>`count(*)` })
       .from(clicks)
       .innerJoin(links, eq(links.id, clicks.linkId))
       .where(and(...conds))
       .groupBy(clicks.browser)
       .orderBy(sql`count(*) desc`)
-      .limit(10)
-      .all(),
+      .limit(10),
   );
 
   // Total active links (not archived) — useful for KPI
-  const linkCountRow = db
+  const linkCountRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(links)
-    .where(and(eq(links.workspaceId, workspaceId), eq(links.archived, false)))
-    .get();
+    .where(and(eq(links.workspaceId, workspaceId), eq(links.archived, false))))[0];
 
   const totalClicks = totalRow?.n ?? 0;
 
@@ -227,12 +213,12 @@ export function getWorkspaceAnalytics(workspaceId: string, days = 30, linkId?: s
 /**
  * Top links by clicks within `days`, with previous-period delta and 7-day sparkline.
  */
-export function getTopLinks(workspaceId: string, days = 30, limit = 10): TopLinkRow[] {
+export async function getTopLinks(workspaceId: string, days = 30, limit = 10): Promise<TopLinkRow[]> {
   const since = daysAgo(days);
   const prevSince = daysAgo(days * 2);
 
-  const rows = safeRows(() =>
-    db
+  const rows = await safeRows(async () =>
+    await db
       .select({
         id: links.id,
         slug: links.slug,
@@ -249,12 +235,11 @@ export function getTopLinks(workspaceId: string, days = 30, limit = 10): TopLink
       .where(and(eq(links.workspaceId, workspaceId), eq(links.archived, false)))
       .groupBy(links.id)
       .orderBy(desc(sql`count(${clicks.id})`), desc(links.createdAt))
-      .limit(limit)
-      .all(),
+      .limit(limit),
   );
 
-  return rows.map((r) => {
-    const prev = db
+  return Promise.all(rows.map(async (r) => {
+    const prev = (await db
       .select({ n: sql<number>`count(*)` })
       .from(clicks)
       .where(
@@ -264,18 +249,16 @@ export function getTopLinks(workspaceId: string, days = 30, limit = 10): TopLink
           gte(clicks.ts, prevSince),
           lt(clicks.ts, since),
         ),
-      )
-      .get();
-    const sparkRows = safeRows(() =>
-      db
+      ))[0];
+    const sparkRows = await safeRows(async () =>
+      await db
         .select({
-          date: sql<string>`date(${clicks.ts} / 1000, 'unixepoch')`,
+          date: sql<string>`to_char(${clicks.ts} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
           clicks: sql<number>`count(*)`,
         })
         .from(clicks)
         .where(and(eq(clicks.linkId, r.id), eq(clicks.isBot, false), gte(clicks.ts, daysAgo(7))))
-        .groupBy(sql`date(${clicks.ts} / 1000, 'unixepoch')`)
-        .all(),
+        .groupBy(sql`to_char(${clicks.ts} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`),
     );
     const sparkMap = new Map(sparkRows.map((s) => [s.date, Number(s.clicks)]));
     const sparkline: number[] = [];
@@ -296,12 +279,12 @@ export function getTopLinks(workspaceId: string, days = 30, limit = 10): TopLink
       delta: prevN > 0 ? Math.round(((cur - prevN) / prevN) * 100) : cur > 0 ? 100 : 0,
       sparkline,
     };
-  });
+  }));
 }
 
-export function getRecentClicks(workspaceId: string, limit = 20): RecentClickRow[] {
-  const rows = safeRows(() =>
-    db
+export async function getRecentClicks(workspaceId: string, limit = 20): Promise<RecentClickRow[]> {
+  const rows = await safeRows(async () =>
+    await db
       .select({
         ts: clicks.ts,
         slug: links.slug,
@@ -315,8 +298,7 @@ export function getRecentClicks(workspaceId: string, limit = 20): RecentClickRow
       .innerJoin(links, eq(links.id, clicks.linkId))
       .where(and(eq(links.workspaceId, workspaceId), eq(clicks.isBot, false)))
       .orderBy(desc(clicks.ts))
-      .limit(limit)
-      .all(),
+      .limit(limit),
   );
   return rows.map((r) => ({
     ts: (r.ts as Date).getTime(),

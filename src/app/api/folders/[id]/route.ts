@@ -18,7 +18,7 @@ async function owned(id: string) {
   const ctx = await getSessionUser();
   if (!ctx) return { err: NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 }) } as const;
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db.select().from(folders).where(and(eq(folders.id, id), eq(folders.workspaceId, ws.id))).get();
+  const row = (await db.select().from(folders).where(and(eq(folders.id, id), eq(folders.workspaceId, ws.id))))[0];
   if (!row) return { err: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) } as const;
   return { row, ws } as const;
 }
@@ -38,11 +38,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (pid) {
       if (pid === id) return NextResponse.json({ error: "Folder tidak bisa menjadi induk dirinya sendiri." }, { status: 400 });
       // parentId has no DB FK, so validate ownership + acyclicity in app code
-      const parent = db
+      const parent = (await db
         .select({ id: folders.id, parentId: folders.parentId })
         .from(folders)
-        .where(and(eq(folders.id, pid), eq(folders.workspaceId, r.ws.id)))
-        .get();
+        .where(and(eq(folders.id, pid), eq(folders.workspaceId, r.ws.id))))[0];
       if (!parent) return NextResponse.json({ error: "Folder induk tidak ditemukan." }, { status: 400 });
       let cursor: string | null = parent.parentId;
       const seen = new Set<string>([pid]);
@@ -50,18 +49,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (cursor === id) return NextResponse.json({ error: "Pemindahan ini membuat loop folder." }, { status: 400 });
         if (seen.has(cursor)) break;
         seen.add(cursor);
-        const next: { parentId: string | null } | undefined = db
+        const next: { parentId: string | null } | undefined = (await db
           .select({ parentId: folders.parentId })
           .from(folders)
-          .where(and(eq(folders.id, cursor), eq(folders.workspaceId, r.ws.id)))
-          .get();
+          .where(and(eq(folders.id, cursor), eq(folders.workspaceId, r.ws.id))))[0];
         cursor = next?.parentId ?? null;
       }
     }
     patch.parentId = pid;
   }
-  db.update(folders).set(patch).where(eq(folders.id, id)).run();
-  const updated = db.select().from(folders).where(eq(folders.id, id)).get();
+  await db.update(folders).set(patch).where(eq(folders.id, id));
+  const updated = (await db.select().from(folders).where(eq(folders.id, id)))[0];
   return NextResponse.json({ folder: updated });
 }
 
@@ -70,10 +68,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const r = await owned(id);
   if ("err" in r) return r.err;
   // parentId has no DB FK, so promote children one level up instead of orphaning them.
-  db.update(folders)
+  await db.update(folders)
     .set({ parentId: r.row.parentId, updatedAt: new Date() })
-    .where(and(eq(folders.parentId, id), eq(folders.workspaceId, r.ws.id)))
-    .run();
-  db.delete(folders).where(eq(folders.id, id)).run();
+    .where(and(eq(folders.parentId, id), eq(folders.workspaceId, r.ws.id)));
+  await db.delete(folders).where(eq(folders.id, id));
   return NextResponse.json({ ok: true });
 }

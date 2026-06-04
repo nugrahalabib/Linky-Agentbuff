@@ -13,7 +13,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db.select().from(domains).where(and(eq(domains.id, id), eq(domains.workspaceId, ws.id))).get();
+  const row = (await db.select().from(domains).where(and(eq(domains.id, id), eq(domains.workspaceId, ws.id))))[0];
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   if (!row.verificationToken) {
     return NextResponse.json({ error: "Token verifikasi tidak ada." }, { status: 400 });
@@ -24,10 +24,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const txt = await dns.resolveTxt(recordName);
     const values = txt.flat().map((s) => s.trim());
     if (values.includes(row.verificationToken)) {
-      db.update(domains)
+      await db.update(domains)
         .set({ verified: true, sslStatus: "active", updatedAt: new Date() })
-        .where(eq(domains.id, id))
-        .run();
+        .where(eq(domains.id, id));
       return NextResponse.json({ ok: true, verified: true });
     }
     return NextResponse.json({

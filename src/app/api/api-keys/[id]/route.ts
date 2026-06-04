@@ -9,8 +9,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db.select().from(apiKeys).where(and(eq(apiKeys.id, id), eq(apiKeys.workspaceId, ws.id))).get();
+  const row = (await db.select().from(apiKeys).where(and(eq(apiKeys.id, id), eq(apiKeys.workspaceId, ws.id))))[0];
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  db.delete(apiKeys).where(eq(apiKeys.id, id)).run();
+  await db.delete(apiKeys).where(eq(apiKeys.id, id));
   return NextResponse.json({ ok: true });
 }

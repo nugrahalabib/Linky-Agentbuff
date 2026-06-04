@@ -59,19 +59,17 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const exists = db
+    const exists = (await db
       .select({ id: links.id })
       .from(links)
-      .where(and(eq(links.slug, slug), isNull(links.domainId)))
-      .get();
+      .where(and(eq(links.slug, slug), isNull(links.domainId))))[0];
     if (exists) return NextResponse.json({ error: "Slug sudah digunakan. Coba yang lain." }, { status: 409 });
   } else {
     for (let i = 0; i < 5; i++) {
-      const exists = db
+      const exists = (await db
         .select({ id: links.id })
         .from(links)
-        .where(and(eq(links.slug, slug), isNull(links.domainId)))
-        .get();
+        .where(and(eq(links.slug, slug), isNull(links.domainId))))[0];
       if (!exists) break;
       slug = generateSlug();
     }
@@ -80,7 +78,7 @@ export async function POST(req: Request) {
   const id = nanoid(14);
   const host = hostOf(destinationUrl);
 
-  db.insert(links)
+  await db.insert(links)
     .values({
       id,
       workspaceId: workspace.id,
@@ -92,8 +90,7 @@ export async function POST(req: Request) {
       isAnonymous: false,
       anonOwnerIp: null,
       createdBy: ctx.user.id,
-    })
-    .run();
+    });
 
   return NextResponse.json({ id, slug });
 }

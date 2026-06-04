@@ -26,11 +26,11 @@ export function isBot(ua: string | null | undefined): boolean {
   return BOT_RE.test(ua);
 }
 
-export function recordClick(ctx: ClickContext): void {
+export async function recordClick(ctx: ClickContext): Promise<void> {
   try {
     const { device, os, browser } = parseUa(ctx.ua);
     const bot = isBot(ctx.ua);
-    db.insert(clicks)
+    await db.insert(clicks)
       .values({
         linkId: ctx.linkId,
         country: ctx.country ?? null,
@@ -43,27 +43,24 @@ export function recordClick(ctx: ClickContext): void {
         ipHash: hashIp(ctx.ip),
         isBot: bot,
         abVariant: ctx.abVariant ?? null,
-      })
-      .run();
+      });
     if (!bot) {
-      db.update(links)
+      await db.update(links)
         .set({ clickCount: sql`${links.clickCount} + 1` })
-        .where(eq(links.id, ctx.linkId))
-        .run();
+        .where(eq(links.id, ctx.linkId));
 
       let workspaceId = ctx.workspaceId ?? null;
       let slug = ctx.slug ?? null;
       let destinationUrl = ctx.destinationUrl ?? null;
       if (!workspaceId) {
-        const link = db
+        const link = (await db
           .select({
             workspaceId: links.workspaceId,
             slug: links.slug,
             destinationUrl: links.destinationUrl,
           })
           .from(links)
-          .where(eq(links.id, ctx.linkId))
-          .get();
+          .where(eq(links.id, ctx.linkId)))[0];
         workspaceId = link?.workspaceId ?? null;
         slug = slug ?? link?.slug ?? null;
         destinationUrl = destinationUrl ?? link?.destinationUrl ?? null;

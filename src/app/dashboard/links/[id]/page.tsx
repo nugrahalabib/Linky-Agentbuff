@@ -19,11 +19,10 @@ export default async function LinkDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const user = await requireUser();
   const workspace = await ensureWorkspace(user.id);
-  const link = db
+  const link = (await db
     .select()
     .from(links)
-    .where(and(eq(links.id, id), eq(links.workspaceId, workspace.id)))
-    .get();
+    .where(and(eq(links.id, id), eq(links.workspaceId, workspace.id))))[0];
   if (!link) notFound();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";

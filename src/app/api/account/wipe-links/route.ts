@@ -20,6 +20,6 @@ export async function POST(req: Request) {
     );
   }
   // FK ON DELETE CASCADE will clean clicks, link_tags, qr_codes
-  const r = db.delete(links).where(eq(links.workspaceId, ws.id)).run();
-  return NextResponse.json({ ok: true, deleted: r.changes });
+  const r = await db.delete(links).where(eq(links.workspaceId, ws.id)).returning({ id: links.id });
+  return NextResponse.json({ ok: true, deleted: r.length });
 }

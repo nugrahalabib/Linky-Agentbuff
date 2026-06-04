@@ -18,15 +18,14 @@ export async function PATCH(req: Request) {
   if (parsed.data.name) patch.name = parsed.data.name.trim();
   if (parsed.data.slug) {
     const slug = parsed.data.slug.toLowerCase();
-    const exists = db
+    const exists = (await db
       .select({ id: workspaces.id })
       .from(workspaces)
-      .where(and(eq(workspaces.slug, slug), ne(workspaces.id, ws.id)))
-      .get();
+      .where(and(eq(workspaces.slug, slug), ne(workspaces.id, ws.id))))[0];
     if (exists) return NextResponse.json({ error: "Slug workspace sudah dipakai." }, { status: 409 });
     patch.slug = slug;
   }
-  db.update(workspaces).set(patch).where(eq(workspaces.id, ws.id)).run();
-  const updated = db.select().from(workspaces).where(eq(workspaces.id, ws.id)).get();
+  await db.update(workspaces).set(patch).where(eq(workspaces.id, ws.id));
+  const updated = (await db.select().from(workspaces).where(eq(workspaces.id, ws.id)))[0];
   return NextResponse.json({ workspace: updated });
 }

@@ -7,13 +7,12 @@ import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 export default async function WorkspaceAnalyticsPage() {
   const user = await requireUser();
   const workspace = await ensureWorkspace(user.id);
-  const linkOptions = db
+  const linkOptions = await db
     .select({ id: links.id, slug: links.slug, title: links.title })
     .from(links)
     .where(and(eq(links.workspaceId, workspace.id), eq(links.archived, false)))
     .orderBy(desc(links.createdAt))
-    .limit(200)
-    .all();
+    .limit(200);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";
 
   return (

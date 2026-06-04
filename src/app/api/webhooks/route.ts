@@ -17,12 +17,11 @@ export async function GET() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const rows = db
+  const rows = await db
     .select()
     .from(webhooks)
     .where(eq(webhooks.workspaceId, ws.id))
-    .orderBy(desc(webhooks.createdAt))
-    .all();
+    .orderBy(desc(webhooks.createdAt));
   return NextResponse.json({ webhooks: rows });
 }
 
@@ -40,7 +39,7 @@ export async function POST(req: Request) {
   const id = nanoid(14);
   const secret = `whsec_${crypto.randomBytes(20).toString("base64url")}`;
 
-  db.insert(webhooks)
+  await db.insert(webhooks)
     .values({
       id,
       workspaceId: ws.id,
@@ -48,9 +47,8 @@ export async function POST(req: Request) {
       secret,
       events: parsed.data.events,
       active: true,
-    })
-    .run();
+    });
 
-  const created = db.select().from(webhooks).where(eq(webhooks.id, id)).get();
+  const created = (await db.select().from(webhooks).where(eq(webhooks.id, id)))[0];
   return NextResponse.json({ webhook: created });
 }

@@ -22,7 +22,7 @@ export async function GET() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const rows = db.select().from(tags).where(eq(tags.workspaceId, ws.id)).all();
+  const rows = await db.select().from(tags).where(eq(tags.workspaceId, ws.id));
   return NextResponse.json({ tags: rows });
 }
 
@@ -34,22 +34,20 @@ export async function POST(req: Request) {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
 
-  const existing = db
+  const existing = (await db
     .select({ id: tags.id })
     .from(tags)
-    .where(and(eq(tags.workspaceId, ws.id), eq(tags.name, parsed.data.name)))
-    .get();
+    .where(and(eq(tags.workspaceId, ws.id), eq(tags.name, parsed.data.name))))[0];
   if (existing) return NextResponse.json({ error: "Tag sudah ada." }, { status: 409 });
 
   const id = nanoid(12);
-  db.insert(tags)
+  await db.insert(tags)
     .values({
       id,
       workspaceId: ws.id,
       name: parsed.data.name,
       color: parsed.data.color ?? "#4F46E5",
-    })
-    .run();
-  const created = db.select().from(tags).where(eq(tags.id, id)).get();
+    });
+  const created = (await db.select().from(tags).where(eq(tags.id, id)))[0];
   return NextResponse.json({ tag: created });
 }

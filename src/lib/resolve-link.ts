@@ -79,13 +79,12 @@ export function appendUtm(url: string, params?: Record<string, string> | null): 
   }
 }
 
-export function resolveLinkBySlug(slug: string): Link | null {
+export async function resolveLinkBySlug(slug: string): Promise<Link | null> {
   return (
-    db
+    (await db
       .select()
       .from(links)
-      .where(and(eq(links.slug, slug), isNull(links.domainId), eq(links.archived, false)))
-      .get() ?? null
+      .where(and(eq(links.slug, slug), isNull(links.domainId), eq(links.archived, false))))[0] ?? null
   );
 }
 
@@ -103,21 +102,19 @@ function appHostname(): string {
  *   default-domain slug never leaks under someone's custom host).
  * - On the app host / localhost / an unknown-or-unverified host → default domain (domain_id IS NULL).
  */
-export function resolveLinkForHost(host: string | null | undefined, slug: string): Link | null {
+export async function resolveLinkForHost(host: string | null | undefined, slug: string): Promise<Link | null> {
   const hostname = (host ?? "").split(":")[0].trim().toLowerCase();
   if (hostname && hostname !== appHostname() && hostname !== "localhost" && hostname !== "127.0.0.1") {
-    const domain = db
+    const domain = (await db
       .select({ id: domains.id })
       .from(domains)
-      .where(and(eq(domains.hostname, hostname), eq(domains.verified, true)))
-      .get();
+      .where(and(eq(domains.hostname, hostname), eq(domains.verified, true))))[0];
     if (domain) {
       return (
-        db
+        (await db
           .select()
           .from(links)
-          .where(and(eq(links.domainId, domain.id), eq(links.slug, slug), eq(links.archived, false)))
-          .get() ?? null
+          .where(and(eq(links.domainId, domain.id), eq(links.slug, slug), eq(links.archived, false))))[0] ?? null
       );
     }
   }

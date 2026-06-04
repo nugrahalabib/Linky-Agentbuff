@@ -13,14 +13,13 @@ export default async function TagDetailPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const user = await requireUser();
   const ws = await ensureWorkspace(user.id);
-  const tag = db
+  const tag = (await db
     .select()
     .from(tags)
-    .where(and(eq(tags.id, id), eq(tags.workspaceId, ws.id)))
-    .get();
+    .where(and(eq(tags.id, id), eq(tags.workspaceId, ws.id))))[0];
   if (!tag) notFound();
 
-  const list = db
+  const list = await db
     .select({
       id: links.id,
       workspaceId: links.workspaceId,
@@ -54,8 +53,7 @@ export default async function TagDetailPage({ params }: { params: Promise<{ id: 
     .from(linkTags)
     .innerJoin(links, eq(links.id, linkTags.linkId))
     .where(and(eq(linkTags.tagId, id), eq(links.workspaceId, ws.id), eq(links.archived, false)))
-    .orderBy(desc(links.createdAt))
-    .all();
+    .orderBy(desc(links.createdAt));
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";
 
   return (

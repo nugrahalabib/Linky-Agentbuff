@@ -63,21 +63,19 @@ export async function POST(req: Request) {
   // Default folder + tag validation (if provided, must belong to workspace)
   let defaultFolderId: string | null = null;
   if (body?.defaultFolderId) {
-    const f = db
+    const f = (await db
       .select({ id: folders.id })
       .from(folders)
-      .where(and(eq(folders.id, body.defaultFolderId), eq(folders.workspaceId, ws.id)))
-      .get();
+      .where(and(eq(folders.id, body.defaultFolderId), eq(folders.workspaceId, ws.id))))[0];
     if (!f) return NextResponse.json({ error: "Folder default tidak valid." }, { status: 400 });
     defaultFolderId = f.id;
   }
   const defaultTagIds: string[] = [];
   if (body?.defaultTagIds && body.defaultTagIds.length > 0) {
-    const valid = db
+    const valid = (await db
       .select({ id: tagsTable.id })
       .from(tagsTable)
-      .where(eq(tagsTable.workspaceId, ws.id))
-      .all()
+      .where(eq(tagsTable.workspaceId, ws.id)))
       .map((t) => t.id);
     for (const id of body.defaultTagIds) if (valid.includes(id)) defaultTagIds.push(id);
   }
@@ -131,11 +129,10 @@ export async function POST(req: Request) {
       const exists =
         usedSlugsInBatch.has(slug) ||
         Boolean(
-          db
+          (await db
             .select({ id: links.id })
             .from(links)
-            .where(and(eq(links.slug, slug), isNull(links.domainId)))
-            .get(),
+            .where(and(eq(links.slug, slug), isNull(links.domainId))))[0],
         );
       if (exists) {
         if (conflict === "skip") continue;
@@ -147,11 +144,10 @@ export async function POST(req: Request) {
             const ex =
               usedSlugsInBatch.has(c) ||
               Boolean(
-                db
+                (await db
                   .select({ id: links.id })
                   .from(links)
-                  .where(and(eq(links.slug, c), isNull(links.domainId)))
-                  .get(),
+                  .where(and(eq(links.slug, c), isNull(links.domainId))))[0],
               );
             if (!ex) {
               candidate = c;
@@ -174,11 +170,10 @@ export async function POST(req: Request) {
       for (let t = 0; t < 6; t++) {
         const g = generateSlug();
         if (usedSlugsInBatch.has(g)) continue;
-        const ex = db
+        const ex = (await db
           .select({ id: links.id })
           .from(links)
-          .where(and(eq(links.slug, g), isNull(links.domainId)))
-          .get();
+          .where(and(eq(links.slug, g), isNull(links.domainId))))[0];
         if (!ex) {
           generated = g;
           break;
@@ -271,29 +266,27 @@ export async function POST(req: Request) {
 
   // Resolve / create tags (workspace-scoped)
   const tagIdByName = new Map<string, string>();
-  const existing = db
+  const existing = await db
     .select({ id: tagsTable.id, name: tagsTable.name })
     .from(tagsTable)
-    .where(eq(tagsTable.workspaceId, ws.id))
-    .all();
+    .where(eq(tagsTable.workspaceId, ws.id));
   for (const t of existing) tagIdByName.set(t.name.toLowerCase(), t.id);
 
   for (const tagName of allTagsInBatch) {
     const key = tagName.toLowerCase();
     if (tagIdByName.has(key)) continue;
     const id = nanoid(12);
-    db.insert(tagsTable)
-      .values({ id, workspaceId: ws.id, name: tagName, color: "#4F46E5" })
-      .run();
+    await db.insert(tagsTable)
+      .values({ id, workspaceId: ws.id, name: tagName, color: "#4F46E5" });
     tagIdByName.set(key, id);
   }
 
   let created = 0;
-  db.transaction(() => {
+  await db.transaction(async (tx) => {
     for (const p of prepared) {
       const id = nanoid(14);
       const passwordHash = p.password ? bcrypt.hashSync(p.password, 10) : null;
-      db.insert(links)
+      await tx.insert(links)
         .values({
           id,
           workspaceId: ws.id,
@@ -311,8 +304,7 @@ export async function POST(req: Request) {
           utmParams: p.utm,
           folderId: p.folderId,
           createdBy: ctx.user.id,
-        })
-        .run();
+        });
       created++;
 
       const linkTagIds = new Set<string>();
@@ -321,7 +313,7 @@ export async function POST(req: Request) {
         if (tid) linkTagIds.add(tid);
       }
       for (const tid of defaultTagIds) linkTagIds.add(tid);
-      for (const tid of linkTagIds) db.insert(linkTags).values({ linkId: id, tagId: tid }).run();
+      for (const tid of linkTagIds) await tx.insert(linkTags).values({ linkId: id, tagId: tid });
     }
   });
 
