@@ -85,6 +85,35 @@ export function isUnsafeRequestUrl(rawUrl: string): boolean {
   }
 }
 
+/**
+ * DNS-rebinding-aware SSRF check for server-side requests (e.g. webhook delivery). In addition to
+ * the string-based isUnsafeRequestUrl(), this RESOLVES the hostname and rejects if ANY resolved IP
+ * is internal — catching the classic attack where a public domain that passed registration later
+ * repoints its A/AAAA record at 127.0.0.1 / 169.254.169.254 / a private range.
+ *
+ * Caveat: a tiny TOCTOU window remains between this lookup and fetch()'s own resolution; fully
+ * closing it needs a pinned-IP dispatcher. This raises the bar substantially for the common case.
+ * Fails CLOSED (returns true) on resolution error.
+ */
+export async function isUnsafeRequestUrlResolved(rawUrl: string): Promise<boolean> {
+  if (isUnsafeRequestUrl(rawUrl)) return true;
+  let hostname: string;
+  try {
+    hostname = new URL(rawUrl).hostname;
+  } catch {
+    return true;
+  }
+  // Already-literal IPs were covered by isInternalHost above; only DNS names need resolution.
+  try {
+    const { lookup } = await import("node:dns/promises");
+    const records = await lookup(hostname, { all: true });
+    return records.some((r) => isInternalHost(r.address));
+  } catch {
+    // Resolution failed — be conservative and block (the delivery would fail anyway).
+    return true;
+  }
+}
+
 function heuristicCheck(url: string): { verdict: Verdict; reasons: string[] } {
   const reasons: string[] = [];
   let verdict: Verdict = "safe";

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { webhooks } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 import { isUnsafeRequestUrl } from "@/lib/safe-browsing";
+import { maskWebhookSecret } from "../route";
 
 const patchSchema = z.object({
   active: z.boolean().optional(),
@@ -43,7 +44,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (parsed.data.url) patch.url = parsed.data.url;
   await db.update(webhooks).set(patch).where(eq(webhooks.id, id));
   const updated = (await db.select().from(webhooks).where(eq(webhooks.id, id)))[0];
-  return NextResponse.json({ webhook: updated });
+  // Mask the signing secret in the PATCH response too — it should only be obtained via the explicit
+  // owner-only reveal endpoint (GET), never returned incidentally on an update.
+  return NextResponse.json({ webhook: maskWebhookSecret(updated) });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {

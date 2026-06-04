@@ -5,13 +5,15 @@ import { db } from "@/lib/db";
 import { links } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 import { isValidUrl } from "@/lib/utils";
+import { httpUrl } from "@/lib/validators";
+import { omitLinkSecrets } from "@/lib/api-serializers";
 
 const abSchema = z.object({
   kind: z.literal("ab"),
   variants: z
     .array(
       z.object({
-        url: z.string().url(),
+        url: httpUrl(),
         weight: z.number().int().min(1).max(100),
         label: z.string().max(40).optional(),
       }),
@@ -25,7 +27,7 @@ const geoSchema = z.object({
     .array(
       z.object({
         country: z.string().length(2),
-        url: z.string().url(),
+        url: httpUrl(),
       }),
     )
     .max(20),
@@ -77,5 +79,5 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   const updated = (await db.select().from(links).where(eq(links.id, id)))[0];
-  return NextResponse.json({ link: updated });
+  return NextResponse.json({ link: updated ? omitLinkSecrets(updated) : null });
 }
