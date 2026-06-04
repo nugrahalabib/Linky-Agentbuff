@@ -2,7 +2,19 @@ import crypto from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { webhookDeliveries, webhooks } from "@/lib/db/schema";
-import { isUnsafeRequestUrl } from "@/lib/safe-browsing";
+import { isUnsafeRequestUrlResolved } from "@/lib/safe-browsing";
+
+// Keep only the 50 most recent delivery rows per webhook. Runs after EVERY delivery outcome
+// (success, failure, or SSRF-block) so the table never grows unbounded.
+async function pruneDeliveries(webhookId: string): Promise<void> {
+  try {
+    await db.execute(
+      sql`DELETE FROM webhook_deliveries WHERE webhook_id = ${webhookId} AND id NOT IN (SELECT id FROM webhook_deliveries WHERE webhook_id = ${webhookId} ORDER BY ts DESC LIMIT 50)`,
+    );
+  } catch {
+    /* non-fatal */
+  }
+}
 
 export type WebhookEvent =
   | "link.clicked"
@@ -79,7 +91,9 @@ async function deliverOne(
   // change and a 3xx could redirect us into the internal network / cloud metadata. Re-check the URL
   // here and (below) refuse to follow redirects. A structurally-unsafe URL is a permanent failure —
   // record it and do NOT retry.
-  if (isUnsafeRequestUrl(url)) {
+  // SSRF guard now also RESOLVES the hostname (catches DNS rebinding: a public domain that passed
+  // registration later pointing at 127.0.0.1 / metadata / a private range).
+  if (await isUnsafeRequestUrlResolved(url)) {
     try {
       await db.insert(webhookDeliveries).values({
         id: attempt === 1 ? deliveryId : `${deliveryId}.${attempt}`,
@@ -100,6 +114,7 @@ async function deliverOne(
           updatedAt: new Date(),
         })
         .where(eq(webhooks.id, webhookId));
+      await pruneDeliveries(webhookId);
     } catch {
       /* non-fatal */
     }
@@ -156,9 +171,11 @@ async function deliverOne(
         statusCode,
         success,
         durationMs,
+        // Always record a descriptive reason, incl. non-exception failures like a 3xx (redirect
+        // refused) or 4xx where no error was thrown.
         error: willRetry
           ? `${errorMessage ?? `HTTP ${statusCode}`} — retry ${attempt}/${MAX_ATTEMPTS - 1} dijadwalkan`
-          : errorMessage,
+          : errorMessage ?? (statusCode != null ? `HTTP ${statusCode}` : "gagal mengirim"),
         requestBody: body.slice(0, 4000),
         responseSnippet,
       });
@@ -175,9 +192,7 @@ async function deliverOne(
         updatedAt: new Date(),
       })
       .where(eq(webhooks.id, webhookId));
-    await db.execute(
-      sql`DELETE FROM webhook_deliveries WHERE webhook_id = ${webhookId} AND id NOT IN (SELECT id FROM webhook_deliveries WHERE webhook_id = ${webhookId} ORDER BY ts DESC LIMIT 50)`,
-    );
+    await pruneDeliveries(webhookId);
   } catch {
     /* non-fatal */
   }

@@ -124,10 +124,9 @@ export function WebhookManager({ initial }: { initial: WebhookView[] }) {
     });
     if (res.ok) {
       const d = await res.json();
-      const updated = d.webhook as Webhook;
-      setList(list.map((x) => (x.id === w.id
-        ? { ...updated, secret: undefined, secretPreview: x.secretPreview ?? `${updated.secret.slice(0, 14)}…` }
-        : x)));
+      // PATCH now returns a masked webhook (secretPreview, no secret) — spread it directly.
+      const updated = d.webhook as WebhookView;
+      setList(list.map((x) => (x.id === w.id ? { ...updated, secretPreview: updated.secretPreview ?? x.secretPreview } : x)));
     }
   };
 

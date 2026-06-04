@@ -48,6 +48,18 @@ jobs:
             set -euo pipefail
             cd ${{ secrets.DEPLOY_PATH || '/opt/linky' }}
 
+            # --- Load production env -------------------------------------------------------------
+            # docker-compose.yml requires DATABASE_URL/AUTH_SECRET (${VAR:?}) — they live ONLY in the
+            # gitignored .env.production on the VPS, so EVERY docker compose call must see them.
+            if [ ! -f .env.production ]; then
+              echo "ERROR: .env.production not found in $(pwd) — cannot deploy."; exit 1
+            fi
+            set -a; . ./.env.production; set +a
+
+            # Ensure the external network exists (it normally does — linky_postgres lives on it).
+            # Idempotent: never recreates/touches the DB; only creates the net if missing.
+            docker network create linky-net 2>/dev/null || true
+
             # Remember the currently-deployed commit so we can roll the APP back if the new one is unhealthy.
             PREV_SHA=$(git rev-parse HEAD)
             echo "Current commit (rollback target): $PREV_SHA"
@@ -56,12 +68,12 @@ jobs:
             git checkout ${{ github.sha }}
 
             # --- Pre-migration backup: never lose data on an upgrade -------------------------------
-            # Dump the dedicated linky_postgres DB before applying migrations. Uses the local socket
-            # inside its own container (trust auth). Keeps the 14 most recent backups.
+            # Dump the dedicated linky_postgres DB before applying migrations. Local socket inside its
+            # own container (trust auth); -w never prompts (fails fast instead of hanging). Keep 14.
             mkdir -p backups
             TS=$(date +%Y%m%d-%H%M%S)
             BACKUP="backups/linky-${TS}.sql"
-            docker exec linky_postgres pg_dump -U linky_user -d linky > "$BACKUP"
+            docker exec linky_postgres pg_dump -w -U linky_user -d linky > "$BACKUP"
             echo "DB backup written: $BACKUP ($(wc -c < "$BACKUP") bytes)"
             ls -1t backups/linky-*.sql | tail -n +15 | xargs -r rm -f
 
@@ -72,7 +84,8 @@ jobs:
 
             # --- Smoke test the health endpoint (retry up to ~30s) -------------------------------
             for i in $(seq 1 15); do
-              if curl -fsS http://127.0.0.1:1709/api/health >/dev/null; then
+              echo "healthcheck attempt $i/15"
+              if curl -fsS --max-time 5 http://127.0.0.1:1709/api/health >/dev/null; then
                 echo "healthy — deploy ${{ github.sha }} live"; exit 0
               fi
               sleep 2

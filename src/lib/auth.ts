@@ -12,16 +12,28 @@ import type { OAuthProfile } from "@/lib/oauth";
 const SESSION_COOKIE = "linky_session";
 const SESSION_DAYS = 30;
 
-const DEV_SECRET_MARKER = "dev-secret-linky-local-only";
+// Substrings that mark a value as a known PUBLIC placeholder (committed in .env examples / Dockerfile
+// / docs). Any of these in production means the deploy never set a real secret → forgeable JWTs.
+const PLACEHOLDER_MARKERS = [
+  "dev-secret-linky-local-only",
+  "dev-secret-change-me",
+  "change-me",
+  "change-at-runtime",
+  "placeholder",
+  "please-use-strong-random",
+  "example",
+  "ci-secret",
+];
 
 function getSecret(): Uint8Array {
   const s = process.env.AUTH_SECRET;
   if (!s) throw new Error("AUTH_SECRET environment variable must be set.");
   if (process.env.NODE_ENV === "production") {
-    // Fail closed in prod: the dev placeholder is public (committed in .env examples + docs), so a
-    // deploy still using it would let anyone forge session JWTs. Require a real, ≥32-char secret.
-    if (s.includes(DEV_SECRET_MARKER)) {
-      throw new Error("AUTH_SECRET is still the development placeholder — set a real secret in production.");
+    // Fail closed in prod: reject ANY known public placeholder (not just one exact marker — the
+    // .env.example and Dockerfile use different placeholder strings) and require a real, ≥32-char secret.
+    const lower = s.toLowerCase();
+    if (PLACEHOLDER_MARKERS.some((m) => lower.includes(m))) {
+      throw new Error("AUTH_SECRET is still a public placeholder — set a real random secret in production.");
     }
     if (s.length < 32) throw new Error("AUTH_SECRET must be at least 32 chars in production.");
   } else if (s.length < 24) {

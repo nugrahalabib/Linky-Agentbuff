@@ -54,7 +54,7 @@ export async function GET() {
     clicks: myClicks.map(({ ipHash: _ih, ...rest }) => rest),
     utm_recipes: myUtm,
     linky_pages: myPages,
-    linky_page_clicks: myPageClicks,
+    linky_page_clicks: myPageClicks.map(({ ipHash: _ih, ...rest }) => rest),
   };
 
   const date = new Date().toISOString().slice(0, 10);

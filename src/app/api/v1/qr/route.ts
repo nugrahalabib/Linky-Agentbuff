@@ -48,6 +48,10 @@ export async function GET(req: Request) {
       "Content-Type": "image/svg+xml",
       "Cache-Control": "public, max-age=3600",
       "Access-Control-Allow-Origin": "*",
+      // Lock the SVG down even though this endpoint is API-key-authenticated (defense in depth,
+      // consistent with the public /api/qr): the SVG can never execute script in our origin.
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      "X-Content-Type-Options": "nosniff",
       ...a.auth.rateHeaders,
     },
   });
