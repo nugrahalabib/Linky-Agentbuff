@@ -27,11 +27,29 @@ export const users = pgTable(
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
     name: text("name"),
+    image: text("image"),
+    oauthProvider: text("oauth_provider"),
+    oauthSubject: text("oauth_subject"),
     emailVerifiedAt: timestamp("email_verified_at", { mode: "date", withTimezone: true }),
     locale: text("locale").notNull().default("id"),
     ...timestamps,
   },
-  (t) => [uniqueIndex("users_email_idx").on(t.email)],
+  (t) => [
+    uniqueIndex("users_email_idx").on(t.email),
+    uniqueIndex("users_oauth_idx").on(t.oauthProvider, t.oauthSubject),
+  ],
+);
+
+export const safeBrowsingCache = pgTable(
+  "safe_browsing_cache",
+  {
+    urlHash: text("url_hash").primaryKey(),
+    verdict: text("verdict").notNull(),
+    threatTypes: text("threat_types"),
+    checkedAt: timestamp("checked_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }).notNull(),
+  },
+  (t) => [index("sbc_expires_idx").on(t.expiresAt)],
 );
 
 export const sessions = pgTable(
@@ -127,6 +145,11 @@ export const links = pgTable(
     androidUrl: text("android_url"),
     utmParams: jsonb("utm_params").$type<Record<string, string>>(),
     geoRules: jsonb("geo_rules").$type<Array<{ country: string; url: string }>>(),
+    abVariants: jsonb("ab_variants").$type<Array<{ url: string; weight: number; label?: string }>>(),
+    ogTitle: text("og_title"),
+    ogDescription: text("og_description"),
+    ogImage: text("og_image"),
+    cloak: boolean("cloak").notNull().default(false),
     clickCount: integer("click_count").notNull().default(0),
     archived: boolean("archived").notNull().default(false),
     isAnonymous: boolean("is_anonymous").notNull().default(false),
@@ -142,7 +165,6 @@ export const links = pgTable(
     index("links_workspace_idx").on(t.workspaceId),
     index("links_folder_idx").on(t.folderId),
     index("links_created_idx").on(t.createdAt),
-    index("links_anon_owner_idx").on(t.anonOwnerIp),
   ],
 );
 
@@ -196,6 +218,7 @@ export const clicks = pgTable(
     utmSource: text("utm_source"),
     utmMedium: text("utm_medium"),
     utmCampaign: text("utm_campaign"),
+    abVariant: text("ab_variant"),
   },
   (t) => [index("clicks_link_ts_idx").on(t.linkId, t.ts), index("clicks_ts_idx").on(t.ts)],
 );
@@ -233,6 +256,107 @@ export const abuseReports = pgTable(
     ...timestamps,
   },
   (t) => [index("abuse_link_idx").on(t.linkId), index("abuse_status_idx").on(t.status)],
+);
+
+export const utmRecipes = pgTable(
+  "utm_recipes",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    utmTerm: text("utm_term"),
+    utmContent: text("utm_content"),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [
+    index("utm_recipes_workspace_idx").on(t.workspaceId),
+    uniqueIndex("utm_recipes_workspace_name_idx").on(t.workspaceId, t.name),
+  ],
+);
+
+export const linkyPages = pgTable(
+  "linky_pages",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    theme: jsonb("theme").$type<Record<string, unknown>>(),
+    background: text("background"),
+    blocks: jsonb("blocks")
+      .$type<Array<{ id: string; kind: string; data: Record<string, unknown> }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    views: integer("views").notNull().default(0),
+    published: boolean("published").notNull().default(true),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("linky_pages_slug_idx").on(t.slug), index("linky_pages_workspace_idx").on(t.workspaceId)],
+);
+
+export const linkyPageClicks = pgTable(
+  "linky_page_clicks",
+  {
+    id: bigserial("id", { mode: "bigint" }).primaryKey(),
+    pageId: text("page_id")
+      .notNull()
+      .references(() => linkyPages.id, { onDelete: "cascade" }),
+    blockId: text("block_id"),
+    ts: timestamp("ts", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    referrer: text("referrer"),
+    country: text("country"),
+    ipHash: text("ip_hash"),
+  },
+  (t) => [index("lpc_page_idx").on(t.pageId, t.ts)],
+);
+
+export const webhooks = pgTable(
+  "webhooks",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    events: jsonb("events").$type<string[]>().notNull().default(sql`'["link.clicked"]'::jsonb`),
+    active: boolean("active").notNull().default(true),
+    lastDeliveryAt: timestamp("last_delivery_at", { mode: "date", withTimezone: true }),
+    lastStatusCode: integer("last_status_code"),
+    failureCount: integer("failure_count").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index("webhooks_workspace_idx").on(t.workspaceId)],
+);
+
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: text("id").primaryKey(),
+    webhookId: text("webhook_id")
+      .notNull()
+      .references(() => webhooks.id, { onDelete: "cascade" }),
+    event: text("event").notNull(),
+    statusCode: integer("status_code"),
+    success: boolean("success").notNull().default(false),
+    durationMs: integer("duration_ms"),
+    error: text("error"),
+    requestBody: text("request_body"),
+    responseSnippet: text("response_snippet"),
+    ts: timestamp("ts", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("whd_webhook_idx").on(t.webhookId, t.ts)],
 );
 
 export type PgUser = typeof users.$inferSelect;
