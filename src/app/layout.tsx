@@ -31,9 +31,8 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Linky",
   },
-  icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-  },
+  // Favicon (Chrome tab) + apple-touch-icon come from src/app/icon.png and src/app/apple-icon.png
+  // via Next's file-based metadata — no manual `icons` field needed.
   manifest: "/manifest.webmanifest",
 };
 
