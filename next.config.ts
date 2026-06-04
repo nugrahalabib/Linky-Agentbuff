@@ -16,21 +16,8 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
-    // Report-only CSP: observes violations without blocking (safe to ship; tune before enforcing —
-    // note /c/[slug] cloak renders external iframes, so frame-src is permissive).
-    const csp = [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "object-src 'none'",
-      "img-src 'self' data: https:",
-      "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "font-src 'self' data:",
-      "connect-src 'self'",
-      "frame-src 'self' https:",
-      "frame-ancestors 'self'",
-      "form-action 'self'",
-    ].join("; ");
+    // The enforced, nonce-based Content-Security-Policy is set per-request in src/middleware.ts
+    // (it needs a fresh nonce each response). Static, request-independent security headers stay here.
     return [
       {
         source: "/:path*",
@@ -42,7 +29,6 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           // HSTS: prod is HTTPS via Caddy; harmless over http (browsers ignore on non-secure).
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-          { key: "Content-Security-Policy-Report-Only", value: csp },
         ],
       },
     ];

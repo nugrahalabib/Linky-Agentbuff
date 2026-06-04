@@ -42,10 +42,13 @@ export function relativeTime(ts: number | string | Date, locale = "id"): string 
  * the request. `get` is the header accessor (e.g. (k) => req.headers.get(k)).
  */
 export function clientIpFromHeaders(get: (key: string) => string | null | undefined): string {
+  // Only trust headers set by the reverse proxy we actually deploy behind (Caddy / Vercel both set
+  // x-real-ip and rewrite x-forwarded-for). `cf-connecting-ip` is intentionally NOT trusted: we are
+  // not behind Cloudflare, so any client could forge it to spoof their IP — defeating rate limits
+  // and poisoning ip_hash analytics. Add it back only if a Cloudflare layer is introduced.
   return (
-    get("cf-connecting-ip") ??
-    get("x-real-ip") ??
-    get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    get("x-real-ip")?.trim() ||
+    get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "0.0.0.0"
   );
 }

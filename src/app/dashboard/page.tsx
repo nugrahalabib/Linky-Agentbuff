@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { LinkListItem } from "@/components/link-list-item";
 import { SparklineChart } from "@/components/sparkline-chart";
 import { formatNumber } from "@/lib/utils";
+import { omitLinkSecrets } from "@/lib/api-serializers";
 
 export default async function DashboardHome() {
   const user = await requireUser();
@@ -129,7 +130,7 @@ export default async function DashboardHome() {
             ) : (
               <div className="flex flex-col divide-y divide-[color:var(--border)]">
                 {recent.map((l) => (
-                  <LinkListItem key={l.id} link={l} appUrl={appUrl} />
+                  <LinkListItem key={l.id} link={omitLinkSecrets(l)} appUrl={appUrl} />
                 ))}
               </div>
             )}

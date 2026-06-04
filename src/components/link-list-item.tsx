@@ -10,7 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { cn, formatNumber, hostOf, relativeTime, truncate } from "@/lib/utils";
 
-type EnrichedLink = DbLink & {
+// passwordHash never reaches the client now (API replaces it with `hasPassword`); keep the optional
+// field for the few server pages that still pass raw rows, and prefer the flag.
+type EnrichedLink = Omit<DbLink, "passwordHash" | "anonOwnerIp"> & {
+  hasPassword?: boolean;
+  passwordHash?: string | null;
   tags?: Array<{ id: string; name: string; color: string }>;
   folder?: { id: string; name: string; color: string } | null;
 };
@@ -80,7 +84,7 @@ export function LinkListItem({
               {t.name}
             </Link>
           ))}
-          {link.passwordHash && (
+          {(link.hasPassword ?? Boolean(link.passwordHash)) && (
             <Badge variant="outline" className="gap-1">
               <Lock className="h-3 w-3" />
               Password

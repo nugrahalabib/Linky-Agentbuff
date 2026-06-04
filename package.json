@@ -1,9 +1,12 @@
 {
   "name": "linky",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "private": true,
   "description": "Linky — Open-source, free-forever URL shortener with custom branded QR, analytics, and link-in-bio.",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0 <23"
+  },
   "scripts": {
     "dev": "next dev --turbopack -p 1709",
     "build": "next build",
@@ -13,7 +16,6 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "postinstall": "tsx scripts/migrate.ts || echo 'Migrations deferred'",
     "test": "node scripts/run-tests.mjs",
     "test:watch": "tsx --test --watch src/lib/**/*.test.ts"
   },
@@ -30,12 +32,12 @@
     "better-sqlite3": "^12.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.44.6",
+    "drizzle-orm": "^0.45.2",
     "ioredis": "^5.10.1",
     "jose": "^6.1.0",
     "lucide-react": "^0.544.0",
     "nanoid": "^5.1.5",
-    "next": "15.5.4",
+    "next": "15.5.19",
     "pino": "^10.3.1",
     "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
@@ -58,7 +60,7 @@
     "@types/ua-parser-js": "^0.7.39",
     "drizzle-kit": "^0.31.5",
     "eslint": "^9.25.1",
-    "eslint-config-next": "15.5.4",
+    "eslint-config-next": "15.5.19",
     "tailwindcss": "^4.1.4",
     "tsx": "^4.20.6",
     "typescript": "^5.8.3"

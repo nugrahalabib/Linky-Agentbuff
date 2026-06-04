@@ -19,6 +19,9 @@ export default async function CloakPage({ params }: { params: Promise<{ slug: st
   const ip = clientIpFromHeaders((k) => h.get(k));
   const picked = pickTargetUrl(link, ua, country, ip);
   const target = picked.url;
+  // Never frame a non-http(s) target (javascript:/data:); these should be impossible after input
+  // validation, but the cloak iframe is a sink so we fail closed here too.
+  if (!/^https?:\/\//i.test(target)) redirect("/not-found");
 
   const title = link.ogTitle || link.title || "Linky";
   return (
@@ -32,7 +35,18 @@ export default async function CloakPage({ params }: { params: Promise<{ slug: st
         <style>{`html,body,iframe{margin:0;padding:0;border:0;height:100vh;width:100vw;overflow:hidden} body{background:#09090b}`}</style>
       </head>
       <body>
-        <iframe src={target} title={title} style={{ display: "block" }} />
+        {/*
+          sandbox keeps the framed third-party site functional (scripts/forms/popups + its own
+          origin) while withholding allow-top-navigation, so a malicious destination cannot hijack
+          our cloak URL to redirect the top window for phishing.
+        */}
+        <iframe
+          src={target}
+          title={title}
+          style={{ display: "block" }}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+          referrerPolicy="no-referrer"
+        />
       </body>
     </html>
   );

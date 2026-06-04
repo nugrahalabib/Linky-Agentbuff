@@ -1,6 +1,7 @@
 import { describe, expect, it } from "./test-shim";
 import {
   createLinkSchema,
+  httpUrl,
   qrConfigSchema,
   shortenAnonSchema,
 } from "./validators";
@@ -40,6 +41,27 @@ describe("validators", () => {
     it("rejects invalid password length", () => {
       const r = createLinkSchema.safeParse({ destinationUrl: "https://x.com", password: "abc" });
       expect(r.success).toBe(false);
+    });
+    it("rejects javascript: in iosUrl/androidUrl", () => {
+      expect(
+        createLinkSchema.safeParse({ destinationUrl: "https://x.com", iosUrl: "javascript:alert(1)" }).success,
+      ).toBe(false);
+      expect(
+        createLinkSchema.safeParse({ destinationUrl: "https://x.com", androidUrl: "data:text/html,x" }).success,
+      ).toBe(false);
+    });
+  });
+
+  describe("httpUrl", () => {
+    const u = httpUrl();
+    it("accepts http(s)", () => {
+      expect(u.safeParse("https://x.com").success).toBe(true);
+      expect(u.safeParse("http://x.com").success).toBe(true);
+    });
+    it("rejects javascript:/data:/relative", () => {
+      expect(u.safeParse("javascript:alert(1)").success).toBe(false);
+      expect(u.safeParse("data:text/html,x").success).toBe(false);
+      expect(u.safeParse("not a url").success).toBe(false);
     });
   });
 

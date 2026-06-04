@@ -8,13 +8,21 @@ services:
       NODE_ENV: production
       PORT: "1709"
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://linky.agentbuff.id}
-      AUTH_SECRET: ${AUTH_SECRET}
-      DATABASE_URL: ${DATABASE_URL:-file:/data/linky.db}
+      # Required — fail fast if unset rather than silently falling back. Runtime is Postgres.
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET wajib di-set di .env.production}
+      # Points at the dedicated linky_postgres container on the shared linky-net (see below).
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL wajib (postgres://linky_user:...@linky_postgres:5432/linky)}
       REDIS_URL: ${REDIS_URL:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      SSO_OIDC_LABEL: ${SSO_OIDC_LABEL:-}
+      SSO_OIDC_AUTHORIZE_URL: ${SSO_OIDC_AUTHORIZE_URL:-}
+      SSO_OIDC_TOKEN_URL: ${SSO_OIDC_TOKEN_URL:-}
+      SSO_OIDC_USERINFO_URL: ${SSO_OIDC_USERINFO_URL:-}
+      SSO_OIDC_CLIENT_ID: ${SSO_OIDC_CLIENT_ID:-}
+      SSO_OIDC_CLIENT_SECRET: ${SSO_OIDC_CLIENT_SECRET:-}
     ports:
       - "127.0.0.1:1709:1709"
-    volumes:
-      - linky-data:/data
     networks:
       - linky-net
 
@@ -35,10 +43,14 @@ services:
       - linky
 
 volumes:
-  linky-data:
   caddy-data:
   caddy-config:
 
+# linky-net is created OUTSIDE this compose file — it is the network the dedicated database
+# container `linky_postgres` lives on. Declaring it `external` means deploys/upgrades ATTACH to the
+# same network and NEVER recreate it. The database (data in the `linky_pgdata` volume, owned by the
+# separate linky_postgres container) is therefore untouched by `docker compose up/down/build` here.
+# Create once if missing:  docker network create linky-net
 networks:
   linky-net:
-    driver: bridge
+    external: true

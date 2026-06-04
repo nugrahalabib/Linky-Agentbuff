@@ -8,6 +8,7 @@ import { updateLinkSchema } from "@/lib/validators";
 import { isValidUrl, normalizeUrl } from "@/lib/utils";
 import { checkUrlSafety } from "@/lib/safe-browsing";
 import { fireWebhooks } from "@/lib/webhooks";
+import { omitLinkSecrets } from "@/lib/api-serializers";
 
 async function loadOwned(id: string) {
   const ctx = await getSessionUser();
@@ -22,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const r = await loadOwned(id);
   if ("err" in r) return r.err;
-  return NextResponse.json({ link: r.link });
+  return NextResponse.json({ link: omitLinkSecrets(r.link) });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -109,7 +110,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       archived: updated.archived,
     });
   }
-  return NextResponse.json({ link: updated });
+  return NextResponse.json({ link: updated ? omitLinkSecrets(updated) : null });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {

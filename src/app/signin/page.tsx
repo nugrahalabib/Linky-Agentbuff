@@ -12,6 +12,8 @@ const ERRORS: Record<string, string> = {
   oauth_state: "Sesi login kedaluwarsa atau tidak cocok. Coba lagi.",
   oauth_failed: "Gagal login. Coba lagi sebentar lagi.",
   no_email: "Akun penyedia tidak memberikan email — tidak bisa lanjut.",
+  email_unverified:
+    "Email dari penyedia login belum terverifikasi, jadi kami tidak bisa menautkannya ke akun yang sudah ada. Login dengan akun yang emailnya sudah terverifikasi.",
 };
 
 function GoogleMark() {

@@ -28,11 +28,13 @@ export default async function DeveloperPage() {
     .where(eq(apiKeys.workspaceId, ws.id))
     .orderBy(desc(apiKeys.createdAt));
 
-  const hooks = await db
+  const hooksRaw = await db
     .select()
     .from(webhooks)
     .where(eq(webhooks.workspaceId, ws.id))
     .orderBy(desc(webhooks.createdAt));
+  // Don't ship the full signing secret to the client on first paint — preview only; reveal on demand.
+  const hooks = hooksRaw.map(({ secret, ...rest }) => ({ ...rest, secretPreview: `${secret.slice(0, 14)}…` }));
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
   const usageRow = await db

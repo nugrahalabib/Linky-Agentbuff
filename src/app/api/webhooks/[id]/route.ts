@@ -12,6 +12,18 @@ const patchSchema = z.object({
   url: z.string().url().optional(),
 });
 
+// Reveal the full signing secret on demand (owner-only). The list endpoint masks it; this is the
+// only way to read it back after creation, so the owner can configure HMAC verification.
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const ctx = await getSessionUser();
+  if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  const ws = await ensureWorkspace(ctx.user.id);
+  const row = (await db.select().from(webhooks).where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id))))[0];
+  if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  return NextResponse.json({ secret: row.secret });
+}
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await getSessionUser();

@@ -82,7 +82,10 @@ function ssoOidcProvider(): OAuthProvider | null {
       email: String(raw.email ?? "").toLowerCase(),
       name: (raw.name as string) ?? (raw.preferred_username as string) ?? null,
       image: (raw.picture as string) ?? null,
-      emailVerified: raw.email_verified !== false,
+      // Fail closed: treat email as verified ONLY when the IdP explicitly says so. Defaulting to
+      // true when the claim is absent would let an SSO connector that omits it link/take over
+      // accounts by email. (See findOrCreateOAuthUser's emailVerified gate.)
+      emailVerified: raw.email_verified === true || raw.email_verified === "true",
     }),
   };
 }

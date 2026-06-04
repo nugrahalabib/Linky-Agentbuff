@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { webhookDeliveries, webhooks } from "@/lib/db/schema";
+import { isUnsafeRequestUrl } from "@/lib/safe-browsing";
 
 export type WebhookEvent =
   | "link.clicked"
@@ -74,6 +75,37 @@ async function deliverOne(
   body: string,
   attempt: number,
 ): Promise<void> {
+  // SSRF guard at delivery time: a webhook URL is validated at registration, but DNS records can
+  // change and a 3xx could redirect us into the internal network / cloud metadata. Re-check the URL
+  // here and (below) refuse to follow redirects. A structurally-unsafe URL is a permanent failure —
+  // record it and do NOT retry.
+  if (isUnsafeRequestUrl(url)) {
+    try {
+      await db.insert(webhookDeliveries).values({
+        id: attempt === 1 ? deliveryId : `${deliveryId}.${attempt}`,
+        webhookId,
+        event,
+        statusCode: null,
+        success: false,
+        durationMs: 0,
+        error: "Diblokir: URL mengarah ke jaringan internal (proteksi SSRF).",
+        requestBody: body.slice(0, 4000),
+        responseSnippet: null,
+      });
+      await db.update(webhooks)
+        .set({
+          lastDeliveryAt: new Date(),
+          lastStatusCode: null,
+          failureCount: sql`${webhooks.failureCount} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(webhooks.id, webhookId));
+    } catch {
+      /* non-fatal */
+    }
+    return;
+  }
+
   const sig = signPayload(secret, body);
   const startedAt = Date.now();
   let statusCode: number | null = null;
@@ -85,6 +117,9 @@ async function deliverOne(
     const t = setTimeout(() => ctrl.abort(), 5000);
     const res = await fetch(url, {
       method: "POST",
+      // Do not follow redirects — a 3xx to an internal host would bypass the SSRF check above.
+      // A redirecting webhook endpoint is treated as a (non-retryable) failure.
+      redirect: "manual",
       headers: {
         "Content-Type": "application/json",
         "User-Agent": "Linky-Webhook/1.0",

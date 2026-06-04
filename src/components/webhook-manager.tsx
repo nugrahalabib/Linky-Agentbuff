@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2, Send, ChevronDown, ChevronUp, Power } from "lucide-react";
 import type { Webhook } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
+// The list/initial data masks the signing secret (preview only); the full value is fetched on demand.
+type WebhookView = Omit<Webhook, "secret"> & { secret?: string; secretPreview?: string };
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +41,7 @@ function statusBadge(d: DeliveryRow): { color: string; label: string } {
   return { color: "bg-rose-500/15 text-rose-600 dark:text-rose-400", label: "ERR" };
 }
 
-function StatusPill({ w }: { w: Webhook }) {
+function StatusPill({ w }: { w: WebhookView }) {
   if (!w.active) return <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[color:var(--muted)] text-[color:var(--muted-foreground)]">paused</span>;
   if (w.failureCount > 3) return <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400">failing ({w.failureCount})</span>;
   if (w.lastStatusCode == null) return <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[color:var(--muted)] text-[color:var(--muted-foreground)]">no events yet</span>;
@@ -47,14 +49,36 @@ function StatusPill({ w }: { w: Webhook }) {
   return <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">degraded</span>;
 }
 
-export function WebhookManager({ initial }: { initial: Webhook[] }) {
+export function WebhookManager({ initial }: { initial: WebhookView[] }) {
   const { push } = useToast();
-  const [list, setList] = useState<Webhook[]>(initial);
+  const [list, setList] = useState<WebhookView[]>(initial);
   const [url, setUrl] = useState("");
   const [events, setEvents] = useState<Set<string>>(new Set(["link.clicked"]));
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [revealedSecret, setRevealedSecret] = useState<Record<string, boolean>>({});
+  const [secretValues, setSecretValues] = useState<Record<string, string>>({});
+
+  // Secret is masked in the list; fetch the full value on demand (owner-only endpoint).
+  const ensureSecret = async (id: string): Promise<string | null> => {
+    if (secretValues[id]) return secretValues[id];
+    const res = await fetch(`/api/webhooks/${id}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    setSecretValues((s) => ({ ...s, [id]: data.secret }));
+    return data.secret as string;
+  };
+  const toggleReveal = async (id: string) => {
+    if (!revealedSecret[id]) await ensureSecret(id);
+    setRevealedSecret((s) => ({ ...s, [id]: !s[id] }));
+  };
+  const copySecret = async (id: string) => {
+    const sec = await ensureSecret(id);
+    if (sec) {
+      navigator.clipboard.writeText(sec);
+      push({ title: "Secret disalin", variant: "success" });
+    }
+  };
   const [deliveries, setDeliveries] = useState<Record<string, DeliveryRow[]>>({});
   const [loadingDeliveries, setLoadingDeliveries] = useState<Record<string, boolean>>({});
 
@@ -71,10 +95,12 @@ export function WebhookManager({ initial }: { initial: Webhook[] }) {
         push({ title: "Gagal", description: data.error, variant: "danger" });
         return;
       }
-      setList([data.webhook, ...list]);
+      const created = data.webhook as Webhook;
+      setSecretValues((s) => ({ ...s, [created.id]: created.secret }));
+      setList([{ ...created, secret: undefined, secretPreview: `${created.secret.slice(0, 14)}…` }, ...list]);
       setUrl("");
-      setExpanded(data.webhook.id);
-      setRevealedSecret((s) => ({ ...s, [data.webhook.id]: true }));
+      setExpanded(created.id);
+      setRevealedSecret((s) => ({ ...s, [created.id]: true }));
       push({ title: "Webhook dibuat", description: "Klik 'Kirim test event' untuk verifikasi.", variant: "success" });
     } finally {
       setLoading(false);
@@ -90,7 +116,7 @@ export function WebhookManager({ initial }: { initial: Webhook[] }) {
     }
   };
 
-  const toggleActive = async (w: Webhook) => {
+  const toggleActive = async (w: WebhookView) => {
     const res = await fetch(`/api/webhooks/${w.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -98,7 +124,10 @@ export function WebhookManager({ initial }: { initial: Webhook[] }) {
     });
     if (res.ok) {
       const d = await res.json();
-      setList(list.map((x) => (x.id === w.id ? d.webhook : x)));
+      const updated = d.webhook as Webhook;
+      setList(list.map((x) => (x.id === w.id
+        ? { ...updated, secret: undefined, secretPreview: x.secretPreview ?? `${updated.secret.slice(0, 14)}…` }
+        : x)));
     }
   };
 
@@ -234,20 +263,14 @@ export function WebhookManager({ initial }: { initial: Webhook[] }) {
                         </div>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 font-mono text-xs bg-[color:var(--background)] p-2 rounded truncate">
-                            {revealedSecret[w.id] ? w.secret : `${w.secret.slice(0, 14)}...`}
+                            {revealedSecret[w.id]
+                              ? secretValues[w.id] ?? w.secret ?? "…"
+                              : w.secretPreview ?? `${(w.secret ?? "").slice(0, 14)}…`}
                           </code>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setRevealedSecret((s) => ({ ...s, [w.id]: !s[w.id] }))}
-                          >
+                          <Button size="sm" variant="outline" onClick={() => toggleReveal(w.id)}>
                             {revealedSecret[w.id] ? "Tutup" : "Lihat"}
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigator.clipboard.writeText(w.secret)}
-                          >
+                          <Button size="sm" variant="outline" onClick={() => copySecret(w.id)}>
                             Salin
                           </Button>
                         </div>

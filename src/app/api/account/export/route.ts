@@ -45,11 +45,13 @@ export async function GET() {
       created_at: ctx.user.createdAt,
     },
     workspace: { id: ws.id, slug: ws.slug, name: ws.name, created_at: ws.createdAt },
-    links: myLinks,
+    // Strip secrets/PII even from the owner's own export: link password hashes and the anonymous
+    // owner IP should never leave the system, and visitor IP hashes aren't the exporter's data.
+    links: myLinks.map(({ passwordHash, anonOwnerIp, ...rest }) => rest),
     folders: myFolders,
     tags: myTags,
     link_tags: myLinkTags,
-    clicks: myClicks,
+    clicks: myClicks.map(({ ipHash, ...rest }) => rest),
     utm_recipes: myUtm,
     linky_pages: myPages,
     linky_page_clicks: myPageClicks,

@@ -22,7 +22,14 @@ export async function GET() {
     .from(webhooks)
     .where(eq(webhooks.workspaceId, ws.id))
     .orderBy(desc(webhooks.createdAt));
-  return NextResponse.json({ webhooks: rows });
+  // Never return the full signing secret in a bulk list — only a preview. The owner reveals the
+  // full value on demand via GET /api/webhooks/[id].
+  return NextResponse.json({ webhooks: rows.map(maskWebhookSecret) });
+}
+
+export function maskWebhookSecret<T extends { secret: string }>(w: T): Omit<T, "secret"> & { secretPreview: string } {
+  const { secret, ...rest } = w;
+  return { ...rest, secretPreview: `${secret.slice(0, 14)}…` };
 }
 
 export async function POST(req: Request) {

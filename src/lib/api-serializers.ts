@@ -36,6 +36,24 @@ export function publicShortBase(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";
 }
 
+/**
+ * Strip server-only secrets from an internal link row before it reaches the owner's browser.
+ * Keeps the camelCase Drizzle shape the dashboard expects; the password hash becomes a `hasPassword`
+ * flag and the anonymous-owner IP is dropped entirely.
+ */
+export function omitLinkSecrets<T extends Record<string, unknown>>(
+  row: T,
+): Omit<T, "passwordHash" | "anonOwnerIp"> & { hasPassword: boolean } {
+  const { passwordHash, anonOwnerIp: _anonOwnerIp, ...rest } = row as T & {
+    passwordHash?: unknown;
+    anonOwnerIp?: unknown;
+  };
+  return {
+    ...(rest as Omit<T, "passwordHash" | "anonOwnerIp">),
+    hasPassword: Boolean(passwordHash),
+  };
+}
+
 export function serializeLink(l: Link): PublicLink {
   const base = publicShortBase().replace(/\/+$/, "");
   return {
