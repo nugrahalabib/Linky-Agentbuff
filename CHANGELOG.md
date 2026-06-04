@@ -19,7 +19,12 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ### Deploy/data-safety — upgrade tanpa kehilangan data
 - `docker-compose.yml`: hapus default SQLite, `DATABASE_URL`/`AUTH_SECRET` wajib (fail-fast), `linky-net` dijadikan **external** (attach ke `linky_postgres` yang sudah ada — DB tak pernah di-recreate oleh `compose up/down`).
-- `deploy.yml`: **pg_dump pra-migrasi** (retensi 14), dan **rollback aplikasi** otomatis ke commit sebelumnya bila healthcheck gagal (situs tetap hidup). `Dockerfile` buang `DATABASE_URL` SQLite build-time.
+- `deploy.yml`: **source `.env.production`** sebelum semua `docker compose` (kalau tidak, `${VAR:?}` bikin deploy gagal), **`docker network create linky-net`** idempoten, **pg_dump pra-migrasi** (`-w`, retensi 14) + **rollback aplikasi** otomatis ke commit sebelumnya bila healthcheck (`--max-time 5`) gagal (situs tetap hidup). `Dockerfile` buang `DATABASE_URL` SQLite build-time.
+- Backup tervalidasi e2e: `pg_dump` ke DB asli menghasilkan dump lengkap (19 tabel, schema + data) → upgrade aman.
+
+### Security — re-audit follow-ups (multi-agent adversarial pass)
+- Re-review 7-dimensi (40 agen) menutup celah sisa: **ipHash** masih bocor di export `linky_page_clicks`; endpoint **`/api/links/[id]/targeting`** balikin link mentah (passwordHash/anonOwnerIp); **webhook PATCH** balikin secret penuh; **DNS-rebinding** SSRF (resolve hostname + cek IP internal saat delivery via `isUnsafeRequestUrlResolved`); `AUTH_SECRET` prod kini tolak SEMUA placeholder publik (bukan satu marker); `/api/v1/qr` dapat CSP SVG; A/B+geo URL pakai `httpUrl()`; prune `webhook_deliveries` di semua jalur.
+- **Dev mode aman**: CSP dev permissif (tanpa `strict-dynamic`, ada `unsafe-eval`+`ws:`) supaya Turbopack HMR/React-Refresh tak diblokir; prod tetap strict nonce. Tervalidasi: `npm run dev` melayani `/`, `/signin`, `/docs/api` (200), `/dashboard` (307).
 
 ### BREAKING — Runtime database is now PostgreSQL (async)
 - **Migrasi runtime SQLite → PostgreSQL** (postgres-js, async Drizzle). Seluruh ~347 call-site DB di 66 file dikonversi sync→async (`.get/.all/.run` → `await`); `schema.ts` jadi pg-core (export name sama, nol import churn); SQLite lama diarsip `schema-sqlite.ts`. `postgres-js` pure-JS (tanpa native binding — lepas dari masalah Windows App Control yang dulu memaksa better-sqlite3).
