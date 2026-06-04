@@ -17,15 +17,17 @@ export function middleware(request: NextRequest) {
   const isDev = process.env.NODE_ENV !== "production";
   const nonce = btoa(crypto.randomUUID());
 
-  const scriptSrc = [
-    "'self'",
-    `'nonce-${nonce}'`,
-    "'strict-dynamic'",
-    "'unsafe-inline'",
-    isDev ? "'unsafe-eval'" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  // PROD: strict nonce + strict-dynamic (the nonce'd Next bootstrap loads the rest of the graph).
+  //       'unsafe-inline' is a legacy fallback that strict-dynamic-aware browsers IGNORE.
+  // DEV:  Turbopack HMR, React Refresh and the error overlay inject un-nonced inline scripts and use
+  //       eval — strict-dynamic would BLOCK them and break the dev server. So dev gets a permissive
+  //       script-src (no strict-dynamic). Dev is local-only and not a security boundary.
+  const scriptSrc = isDev
+    ? "'self' 'unsafe-inline' 'unsafe-eval'"
+    : `'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline'`;
+
+  // 'self' covers the same-origin HMR socket per CSP3, but add ws:/wss: in dev for older targets.
+  const connectSrc = isDev ? "'self' ws: wss:" : "'self'";
 
   const csp = [
     "default-src 'self'",
@@ -35,7 +37,7 @@ export function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     `script-src ${scriptSrc}`,
     "font-src 'self' data:",
-    "connect-src 'self'",
+    `connect-src ${connectSrc}`,
     // /c/[slug] cloak frames arbitrary destination sites and /u/ pages embed YouTube — allow https.
     "frame-src 'self' https:",
     "frame-ancestors 'self'",
