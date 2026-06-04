@@ -11,10 +11,10 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (id === ctx.session.id) {
     return NextResponse.json({ error: "Tidak bisa revoke sesi yang sedang aktif. Pakai Logout." }, { status: 400 });
   }
-  const r = db
+  const r = await db
     .delete(sessions)
     .where(and(eq(sessions.id, id), eq(sessions.userId, ctx.user.id)))
-    .run();
-  if (r.changes === 0) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+    .returning({ id: sessions.id });
+  if (r.length === 0) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

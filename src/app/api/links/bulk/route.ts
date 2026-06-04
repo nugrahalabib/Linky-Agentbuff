@@ -20,34 +20,34 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
 
   // Ensure all ids belong to workspace
-  const owned = db
-    .select({ id: links.id })
-    .from(links)
-    .where(and(eq(links.workspaceId, ws.id), inArray(links.id, parsed.data.ids)))
-    .all()
-    .map((r) => r.id);
+  const owned = (
+    await db
+      .select({ id: links.id })
+      .from(links)
+      .where(and(eq(links.workspaceId, ws.id), inArray(links.id, parsed.data.ids)))
+  ).map((r) => r.id);
   if (owned.length === 0) return NextResponse.json({ affected: 0 });
 
   if (parsed.data.action === "delete") {
-    db.delete(links).where(inArray(links.id, owned)).run();
+    await db.delete(links).where(inArray(links.id, owned));
   } else if (parsed.data.action === "archive") {
-    db.update(links).set({ archived: true, updatedAt: new Date() }).where(inArray(links.id, owned)).run();
+    await db.update(links).set({ archived: true, updatedAt: new Date() }).where(inArray(links.id, owned));
   } else if (parsed.data.action === "unarchive") {
-    db.update(links).set({ archived: false, updatedAt: new Date() }).where(inArray(links.id, owned)).run();
+    await db.update(links).set({ archived: false, updatedAt: new Date() }).where(inArray(links.id, owned));
   } else if (parsed.data.action === "set_folder_null") {
-    db.update(links).set({ folderId: null, updatedAt: new Date() }).where(inArray(links.id, owned)).run();
+    await db.update(links).set({ folderId: null, updatedAt: new Date() }).where(inArray(links.id, owned));
   } else if (parsed.data.action === "move_folder") {
     if (!parsed.data.folderId) return NextResponse.json({ error: "folderId wajib." }, { status: 400 });
-    const folder = db
-      .select({ id: folders.id })
-      .from(folders)
-      .where(and(eq(folders.id, parsed.data.folderId), eq(folders.workspaceId, ws.id)))
-      .get();
+    const folder = (
+      await db
+        .select({ id: folders.id })
+        .from(folders)
+        .where(and(eq(folders.id, parsed.data.folderId), eq(folders.workspaceId, ws.id)))
+    )[0];
     if (!folder) return NextResponse.json({ error: "Folder tidak ditemukan." }, { status: 400 });
-    db.update(links)
+    await db.update(links)
       .set({ folderId: parsed.data.folderId, updatedAt: new Date() })
-      .where(inArray(links.id, owned))
-      .run();
+      .where(inArray(links.id, owned));
   }
   return NextResponse.json({ affected: owned.length });
 }

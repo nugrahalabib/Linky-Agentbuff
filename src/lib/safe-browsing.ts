@@ -129,13 +129,12 @@ function heuristicCheck(url: string): { verdict: Verdict; reasons: string[] } {
   return { verdict, reasons };
 }
 
-function getCached(urlHash: string): CheckResult | null {
+async function getCached(urlHash: string): Promise<CheckResult | null> {
   try {
-    const row = db
+    const row = (await db
       .select()
       .from(safeBrowsingCache)
-      .where(and(eq(safeBrowsingCache.urlHash, urlHash), gt(safeBrowsingCache.expiresAt, new Date())))
-      .get();
+      .where(and(eq(safeBrowsingCache.urlHash, urlHash), gt(safeBrowsingCache.expiresAt, new Date()))))[0];
     if (!row) return null;
     return {
       verdict: row.verdict,
@@ -147,19 +146,18 @@ function getCached(urlHash: string): CheckResult | null {
   }
 }
 
-function setCached(urlHash: string, result: CheckResult): void {
+async function setCached(urlHash: string, result: CheckResult): Promise<void> {
   try {
     const expiresAt = new Date(Date.now() + CACHE_TTL_MS);
     // upsert
-    db.delete(safeBrowsingCache).where(eq(safeBrowsingCache.urlHash, urlHash)).run();
-    db.insert(safeBrowsingCache)
+    await db.delete(safeBrowsingCache).where(eq(safeBrowsingCache.urlHash, urlHash));
+    await db.insert(safeBrowsingCache)
       .values({
         urlHash,
         verdict: result.verdict,
         threatTypes: result.threatTypes.length > 0 ? result.threatTypes.join(",") : null,
         expiresAt,
-      })
-      .run();
+      });
   } catch {
     /* non-fatal */
   }
@@ -229,7 +227,7 @@ export async function checkUrlSafety(url: string): Promise<CheckResult> {
   }
 
   const urlHash = sha256(url);
-  const cached = getCached(urlHash);
+  const cached = await getCached(urlHash);
   if (cached) return cached;
 
   const apiResult = await callGoogleApi(url, apiKey);
@@ -248,6 +246,6 @@ export async function checkUrlSafety(url: string): Promise<CheckResult> {
         : [];
 
   const result: CheckResult = { verdict: finalVerdict, threatTypes: finalThreats, source: "api" };
-  setCached(urlHash, result);
+  await setCached(urlHash, result);
   return result;
 }

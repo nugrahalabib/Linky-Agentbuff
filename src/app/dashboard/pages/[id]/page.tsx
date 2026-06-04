@@ -9,7 +9,7 @@ export default async function LinkyPageEdit({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const user = await requireUser();
   const ws = await ensureWorkspace(user.id);
-  const page = db.select().from(linkyPages).where(and(eq(linkyPages.id, id), eq(linkyPages.workspaceId, ws.id))).get();
+  const page = (await db.select().from(linkyPages).where(and(eq(linkyPages.id, id), eq(linkyPages.workspaceId, ws.id))))[0];
   if (!page) notFound();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";
   return <LinkyPageEditor page={page} appUrl={appUrl} />;

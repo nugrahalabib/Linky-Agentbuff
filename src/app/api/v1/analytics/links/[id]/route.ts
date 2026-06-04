@@ -12,15 +12,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const a = await withApiAuth(req);
   if (!a.ok) return a.res;
   const { id } = await params;
-  const link = db
+  const link = (await db
     .select({ id: links.id })
     .from(links)
-    .where(and(eq(links.id, id), eq(links.workspaceId, a.auth.workspace.id)))
-    .get();
+    .where(and(eq(links.id, id), eq(links.workspaceId, a.auth.workspace.id))))[0];
   if (!link) return apiError("not_found", "Link tidak ditemukan.", 404, a.auth.rateHeaders);
   const url = new URL(req.url);
   const days = Math.min(Math.max(Number(url.searchParams.get("days") ?? "30"), 1), 365);
   if (Number.isNaN(days)) return apiError("validation_error", "days harus angka.", 400, a.auth.rateHeaders);
-  const data = getLinkAnalytics(id, days);
+  const data = await getLinkAnalytics(id, days);
   return apiOk({ data: { link_id: id, period_days: days, ...data } }, { extraHeaders: a.auth.rateHeaders });
 }

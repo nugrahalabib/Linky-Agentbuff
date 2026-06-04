@@ -16,11 +16,10 @@ export async function PATCH(req: Request) {
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.name !== undefined) patch.name = parsed.data.name?.trim() || null;
   if (parsed.data.locale !== undefined) patch.locale = parsed.data.locale;
-  db.update(users).set(patch).where(eq(users.id, ctx.user.id)).run();
-  const updated = db
+  await db.update(users).set(patch).where(eq(users.id, ctx.user.id));
+  const updated = (await db
     .select({ id: users.id, email: users.email, name: users.name, locale: users.locale })
     .from(users)
-    .where(eq(users.id, ctx.user.id))
-    .get();
+    .where(eq(users.id, ctx.user.id)))[0];
   return NextResponse.json({ user: updated });
 }

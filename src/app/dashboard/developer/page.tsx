@@ -15,7 +15,7 @@ export default async function DeveloperPage() {
   const user = await requireUser();
   const ws = await ensureWorkspace(user.id);
 
-  const keys = db
+  const keys = await db
     .select({
       id: apiKeys.id,
       name: apiKeys.name,
@@ -26,41 +26,35 @@ export default async function DeveloperPage() {
     })
     .from(apiKeys)
     .where(eq(apiKeys.workspaceId, ws.id))
-    .orderBy(desc(apiKeys.createdAt))
-    .all();
+    .orderBy(desc(apiKeys.createdAt));
 
-  const hooks = db
+  const hooks = await db
     .select()
     .from(webhooks)
     .where(eq(webhooks.workspaceId, ws.id))
-    .orderBy(desc(webhooks.createdAt))
-    .all();
+    .orderBy(desc(webhooks.createdAt));
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
-  const usageRow = db
+  const usageRow = await db
     .select({ n: sql<number>`count(*)` })
     .from(apiKeys)
-    .where(eq(apiKeys.workspaceId, ws.id))
-    .all();
-  const recentlyUsedRow = db
+    .where(eq(apiKeys.workspaceId, ws.id));
+  const recentlyUsedRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(apiKeys)
-    .where(sql`${apiKeys.workspaceId} = ${ws.id} AND ${apiKeys.lastUsedAt} >= ${sevenDaysAgo.getTime()}`)
-    .get();
-  const deliveriesRow = db
+    .where(sql`${apiKeys.workspaceId} = ${ws.id} AND ${apiKeys.lastUsedAt} >= ${sevenDaysAgo.getTime()}`))[0];
+  const deliveriesRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(webhookDeliveries)
     .innerJoin(webhooks, eq(webhooks.id, webhookDeliveries.webhookId))
-    .where(sql`${webhooks.workspaceId} = ${ws.id} AND ${webhookDeliveries.ts} >= ${sevenDaysAgo.getTime()}`)
-    .get();
-  const failedRow = db
+    .where(sql`${webhooks.workspaceId} = ${ws.id} AND ${webhookDeliveries.ts} >= ${sevenDaysAgo.getTime()}`))[0];
+  const failedRow = (await db
     .select({ n: sql<number>`count(*)` })
     .from(webhookDeliveries)
     .innerJoin(webhooks, eq(webhooks.id, webhookDeliveries.webhookId))
     .where(
       sql`${webhooks.workspaceId} = ${ws.id} AND ${webhookDeliveries.ts} >= ${sevenDaysAgo.getTime()} AND ${webhookDeliveries.success} = 0`,
-    )
-    .get();
+    ))[0];
 
   const stats = {
     totalKeys: usageRow.length,

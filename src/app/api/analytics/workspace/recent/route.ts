@@ -10,6 +10,6 @@ export async function GET(req: Request) {
   const ws = await ensureWorkspace(ctx.user.id);
   const url = new URL(req.url);
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "20"), 1), 100);
-  const rows = getRecentClicks(ws.id, limit);
+  const rows = await getRecentClicks(ws.id, limit);
   return NextResponse.json({ recent: rows, count: rows.length });
 }

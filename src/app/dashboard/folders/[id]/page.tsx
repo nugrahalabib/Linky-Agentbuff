@@ -13,19 +13,17 @@ export default async function FolderDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const user = await requireUser();
   const ws = await ensureWorkspace(user.id);
-  const folder = db
+  const folder = (await db
     .select()
     .from(folders)
-    .where(and(eq(folders.id, id), eq(folders.workspaceId, ws.id)))
-    .get();
+    .where(and(eq(folders.id, id), eq(folders.workspaceId, ws.id))))[0];
   if (!folder) notFound();
 
-  const list = db
+  const list = await db
     .select()
     .from(links)
     .where(and(eq(links.workspaceId, ws.id), eq(links.folderId, id), eq(links.archived, false)))
-    .orderBy(desc(links.createdAt))
-    .all();
+    .orderBy(desc(links.createdAt));
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";
 
   return (

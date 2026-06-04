@@ -11,7 +11,7 @@ import { NewLinkyPageButton } from "@/components/new-linky-page-button";
 export default async function LinkyPagesIndex() {
   const user = await requireUser();
   const ws = await ensureWorkspace(user.id);
-  const pages = db.select().from(linkyPages).where(eq(linkyPages.workspaceId, ws.id)).orderBy(desc(linkyPages.createdAt)).all();
+  const pages = await db.select().from(linkyPages).where(eq(linkyPages.workspaceId, ws.id)).orderBy(desc(linkyPages.createdAt));
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";
   return (
     <div className="p-6 sm:p-8 max-w-6xl mx-auto w-full">

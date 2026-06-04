@@ -17,7 +17,7 @@ export async function GET() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const rows = db
+  const rows = await db
     .select({
       id: apiKeys.id,
       name: apiKeys.name,
@@ -28,8 +28,7 @@ export async function GET() {
     })
     .from(apiKeys)
     .where(eq(apiKeys.workspaceId, ws.id))
-    .orderBy(desc(apiKeys.createdAt))
-    .all();
+    .orderBy(desc(apiKeys.createdAt));
   return NextResponse.json({ keys: rows });
 }
 
@@ -49,7 +48,7 @@ export async function POST(req: Request) {
     ? new Date(Date.now() + parsed.data.expiresInDays * 86400000)
     : null;
 
-  db.insert(apiKeys)
+  await db.insert(apiKeys)
     .values({
       id,
       workspaceId: ws.id,
@@ -58,8 +57,7 @@ export async function POST(req: Request) {
       keyHash,
       keyPrefix: prefix,
       expiresAt,
-    })
-    .run();
+    });
 
   return NextResponse.json({ key: { id, prefix, token, name: parsed.data.name, expiresAt } });
 }

@@ -15,11 +15,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "bad input" }, { status: 400 });
 
-  const page = db
+  const page = (await db
     .select({ id: linkyPages.id, published: linkyPages.published })
     .from(linkyPages)
-    .where(eq(linkyPages.id, id))
-    .get();
+    .where(eq(linkyPages.id, id)))[0];
   // No-op (don't leak existence, don't pollute clicks) for missing or unpublished/draft pages.
   if (!page || !page.published) return NextResponse.json({ ok: true });
 
@@ -27,18 +26,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (isBot(req.headers.get("user-agent"))) return NextResponse.json({ ok: true });
 
   const ip = clientIpFromHeaders((k) => req.headers.get(k));
-  db.insert(linkyPageClicks)
+  await db.insert(linkyPageClicks)
     .values({
       pageId: id,
       blockId: parsed.data.blockId ?? null,
       referrer: req.headers.get("referer") ?? null,
       country: req.headers.get("x-vercel-ip-country") ?? req.headers.get("cf-ipcountry") ?? null,
       ipHash: hashIp(ip),
-    })
-    .run();
+    });
 
   if (parsed.data.view) {
-    db.update(linkyPages).set({ views: sql`${linkyPages.views} + 1` }).where(eq(linkyPages.id, id)).run();
+    await db.update(linkyPages).set({ views: sql`${linkyPages.views} + 1` }).where(eq(linkyPages.id, id));
   }
   return NextResponse.json({ ok: true });
 }

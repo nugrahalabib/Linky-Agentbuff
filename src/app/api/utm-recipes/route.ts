@@ -19,7 +19,7 @@ export async function GET() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const rows = db.select().from(utmRecipes).where(eq(utmRecipes.workspaceId, ws.id)).all();
+  const rows = await db.select().from(utmRecipes).where(eq(utmRecipes.workspaceId, ws.id));
   return NextResponse.json({ recipes: rows });
 }
 
@@ -31,15 +31,14 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
 
-  const existing = db
+  const existing = (await db
     .select({ id: utmRecipes.id })
     .from(utmRecipes)
-    .where(and(eq(utmRecipes.workspaceId, ws.id), eq(utmRecipes.name, parsed.data.name)))
-    .get();
+    .where(and(eq(utmRecipes.workspaceId, ws.id), eq(utmRecipes.name, parsed.data.name))))[0];
   if (existing) return NextResponse.json({ error: "Nama recipe sudah dipakai." }, { status: 409 });
 
   const id = nanoid(12);
-  db.insert(utmRecipes)
+  await db.insert(utmRecipes)
     .values({
       id,
       workspaceId: ws.id,
@@ -50,8 +49,7 @@ export async function POST(req: Request) {
       utmTerm: parsed.data.utmTerm ?? null,
       utmContent: parsed.data.utmContent ?? null,
       createdBy: ctx.user.id,
-    })
-    .run();
-  const created = db.select().from(utmRecipes).where(eq(utmRecipes.id, id)).get();
+    });
+  const created = (await db.select().from(utmRecipes).where(eq(utmRecipes.id, id)))[0];
   return NextResponse.json({ recipe: created });
 }

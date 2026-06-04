@@ -16,20 +16,21 @@ export default async function DashboardHome() {
   const user = await requireUser();
   const workspace = await ensureWorkspace(user.id);
 
-  const allLinks = db
+  const allLinks = await db
     .select()
     .from(links)
     .where(and(eq(links.workspaceId, workspace.id), eq(links.archived, false)))
-    .orderBy(desc(links.createdAt))
-    .all();
+    .orderBy(desc(links.createdAt));
 
   const recent = allLinks.slice(0, 5);
   const totalLinks = allLinks.length;
 
-  const analytics = getWorkspaceAnalytics(workspace.id, 7);
+  const analytics = await getWorkspaceAnalytics(workspace.id, 7);
   const sparkline = fillMissingDays(analytics.last7Days, 7);
   const totalClicks = analytics.totalClicks;
   const todayClicks = sparkline.at(-1)?.clicks ?? 0;
+
+  const analytics30 = await getWorkspaceAnalytics(workspace.id, 30);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:1709";
   const firstName = (user.name || user.email.split("@")[0]).split(" ")[0];
@@ -66,7 +67,7 @@ export default async function DashboardHome() {
         <Card>
           <CardHeader>
             <CardDescription>Total klik (30 hari)</CardDescription>
-            <CardTitle className="text-3xl">{formatNumber(getWorkspaceAnalytics(workspace.id, 30).totalClicks)}</CardTitle>
+            <CardTitle className="text-3xl">{formatNumber(analytics30.totalClicks)}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xs text-[color:var(--muted-foreground)] flex items-center gap-1">

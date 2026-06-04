@@ -10,11 +10,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const hook = db
+  const hook = (await db
     .select()
     .from(webhooks)
-    .where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id)))
-    .get();
+    .where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id))))[0];
   if (!hook) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   fireWebhooks(ws.id, "link.clicked", {
     test: true,

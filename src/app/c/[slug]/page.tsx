@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function CloakPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const h = await headers();
-  const link = resolveLinkForHost(h.get("host"), slug);
+  const link = await resolveLinkForHost(h.get("host"), slug);
   if (!link) redirect("/not-found");
   const status = checkLinkStatus(link);
   if (status.kind === "expired" || status.kind === "click_limit") redirect("/expired");

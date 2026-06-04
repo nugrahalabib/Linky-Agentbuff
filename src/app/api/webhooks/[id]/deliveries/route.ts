@@ -9,18 +9,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const hook = db
+  const hook = (await db
     .select({ id: webhooks.id })
     .from(webhooks)
-    .where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id)))
-    .get();
+    .where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id))))[0];
   if (!hook) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  const rows = db
+  const rows = await db
     .select()
     .from(webhookDeliveries)
     .where(eq(webhookDeliveries.webhookId, id))
     .orderBy(desc(webhookDeliveries.ts))
-    .limit(50)
-    .all();
+    .limit(50);
   return NextResponse.json({ deliveries: rows });
 }

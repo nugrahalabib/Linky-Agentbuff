@@ -9,7 +9,7 @@ function getClientIp(req: Request): string {
 
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const link = resolveLinkForHost(req.headers.get("host"), slug);
+  const link = await resolveLinkForHost(req.headers.get("host"), slug);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
 
   if (!link) {

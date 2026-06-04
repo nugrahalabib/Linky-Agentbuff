@@ -21,14 +21,14 @@ export function signPayload(secret: string, body: string): string {
   return crypto.createHmac("sha256", secret).update(body).digest("hex");
 }
 
-export function fireWebhooks(
+export async function fireWebhooks(
   workspaceId: string,
   event: WebhookEvent,
   data: Record<string, unknown>,
-): void {
+): Promise<void> {
   let subscribers: Array<{ id: string; url: string; secret: string; events: unknown }>;
   try {
-    const targets = db.select().from(webhooks).where(eq(webhooks.workspaceId, workspaceId)).all();
+    const targets = await db.select().from(webhooks).where(eq(webhooks.workspaceId, workspaceId));
     subscribers = targets.filter(
       (w) => w.active && Array.isArray(w.events) && w.events.includes(event),
     );
@@ -112,7 +112,7 @@ async function deliverOne(
   const willRetry = !success && isRetryable(statusCode) && attempt < MAX_ATTEMPTS;
 
   try {
-    db.insert(webhookDeliveries)
+    await db.insert(webhookDeliveries)
       .values({
         // Stable delivery_id in the payload (for receiver dedup); unique row id per attempt.
         id: attempt === 1 ? deliveryId : `${deliveryId}.${attempt}`,
@@ -126,9 +126,8 @@ async function deliverOne(
           : errorMessage,
         requestBody: body.slice(0, 4000),
         responseSnippet,
-      })
-      .run();
-    db.update(webhooks)
+      });
+    await db.update(webhooks)
       .set({
         lastDeliveryAt: new Date(),
         lastStatusCode: statusCode,
@@ -140,9 +139,8 @@ async function deliverOne(
             : sql`${webhooks.failureCount} + 1`,
         updatedAt: new Date(),
       })
-      .where(eq(webhooks.id, webhookId))
-      .run();
-    db.run(
+      .where(eq(webhooks.id, webhookId));
+    await db.execute(
       sql`DELETE FROM webhook_deliveries WHERE webhook_id = ${webhookId} AND id NOT IN (SELECT id FROM webhook_deliveries WHERE webhook_id = ${webhookId} ORDER BY ts DESC LIMIT 50)`,
     );
   } catch {

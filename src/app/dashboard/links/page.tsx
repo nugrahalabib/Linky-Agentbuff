@@ -12,25 +12,23 @@ import { LinksBrowser } from "@/components/links-browser";
 export default async function LinksPage() {
   const user = await requireUser();
   const workspace = await ensureWorkspace(user.id);
-  const rawRows = db
+  const rawRows = await db
     .select()
     .from(links)
     .where(and(eq(links.workspaceId, workspace.id), eq(links.archived, false)))
-    .orderBy(desc(links.createdAt))
-    .all();
-  const allFolders = db.select().from(folders).where(eq(folders.workspaceId, workspace.id)).all();
-  const allTags = db.select().from(tagsTable).where(eq(tagsTable.workspaceId, workspace.id)).all();
+    .orderBy(desc(links.createdAt));
+  const allFolders = await db.select().from(folders).where(eq(folders.workspaceId, workspace.id));
+  const allTags = await db.select().from(tagsTable).where(eq(tagsTable.workspaceId, workspace.id));
 
   // Enrich rows with folder + tags for initial render
   const ids = rawRows.map((l) => l.id);
   const tagMap = new Map<string, Array<{ id: string; name: string; color: string }>>();
   if (ids.length > 0) {
-    const tagRows = db
+    const tagRows = await db
       .select({ linkId: linkTags.linkId, id: tagsTable.id, name: tagsTable.name, color: tagsTable.color })
       .from(linkTags)
       .innerJoin(tagsTable, eq(tagsTable.id, linkTags.tagId))
-      .where(inArray(linkTags.linkId, ids))
-      .all();
+      .where(inArray(linkTags.linkId, ids));
     for (const t of tagRows) {
       const arr = tagMap.get(t.linkId) ?? [];
       arr.push({ id: t.id, name: t.name, color: t.color });

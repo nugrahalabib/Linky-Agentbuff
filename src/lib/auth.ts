@@ -26,17 +26,16 @@ function getSecret(): Uint8Array {
  * empty password_hash (column is legacy/NOT NULL at the DB level).
  */
 export async function findOrCreateOAuthUser(provider: string, profile: OAuthProfile): Promise<User> {
-  const bySubject = db
+  const bySubject = (await db
     .select()
     .from(users)
-    .where(and(eq(users.oauthProvider, provider), eq(users.oauthSubject, profile.subject)))
-    .get();
+    .where(and(eq(users.oauthProvider, provider), eq(users.oauthSubject, profile.subject))))[0];
   if (bySubject) return bySubject;
 
   if (profile.email) {
-    const byEmail = db.select().from(users).where(eq(users.email, profile.email)).get();
+    const byEmail = (await db.select().from(users).where(eq(users.email, profile.email)))[0];
     if (byEmail) {
-      db.update(users)
+      await db.update(users)
         .set({
           oauthProvider: provider,
           oauthSubject: profile.subject,
@@ -45,14 +44,13 @@ export async function findOrCreateOAuthUser(provider: string, profile: OAuthProf
           emailVerifiedAt: byEmail.emailVerifiedAt ?? (profile.emailVerified ? new Date() : null),
           updatedAt: new Date(),
         })
-        .where(eq(users.id, byEmail.id))
-        .run();
-      return db.select().from(users).where(eq(users.id, byEmail.id)).get() as User;
+        .where(eq(users.id, byEmail.id));
+      return (await db.select().from(users).where(eq(users.id, byEmail.id)))[0] as User;
     }
   }
 
   const id = nanoid(14);
-  db.insert(users)
+  await db.insert(users)
     .values({
       id,
       email: profile.email,
@@ -63,9 +61,8 @@ export async function findOrCreateOAuthUser(provider: string, profile: OAuthProf
       oauthSubject: profile.subject,
       emailVerifiedAt: profile.emailVerified ? new Date() : null,
       locale: "id",
-    })
-    .run();
-  return db.select().from(users).where(eq(users.id, id)).get() as User;
+    });
+  return (await db.select().from(users).where(eq(users.id, id)))[0] as User;
 }
 
 async function signSessionToken(sessionId: string, userId: string, expSec: number): Promise<string> {
@@ -93,9 +90,8 @@ export async function createSession(userId: string): Promise<string> {
   } catch {
     /* not in request scope */
   }
-  db.insert(sessions)
-    .values({ id: sessionId, userId, expiresAt, userAgent, ipHash, lastSeenAt: new Date() })
-    .run();
+  await db.insert(sessions)
+    .values({ id: sessionId, userId, expiresAt, userAgent, ipHash, lastSeenAt: new Date() });
   const token = await signSessionToken(sessionId, userId, Math.floor(expiresAt.getTime() / 1000));
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
@@ -115,7 +111,7 @@ export async function destroySession(): Promise<void> {
     try {
       const { payload } = await jwtVerify(token, getSecret());
       const sid = payload.sid as string | undefined;
-      if (sid) db.delete(sessions).where(eq(sessions.id, sid)).run();
+      if (sid) await db.delete(sessions).where(eq(sessions.id, sid));
     } catch {
       /* ignore */
     }
@@ -130,16 +126,16 @@ export async function getSessionUser(): Promise<{ user: User; session: Session }
   try {
     const { payload } = await jwtVerify(token, getSecret());
     const sid = payload.sid as string;
-    const session = db.select().from(sessions).where(eq(sessions.id, sid)).get();
+    const session = (await db.select().from(sessions).where(eq(sessions.id, sid)))[0];
     if (!session) return null;
     if (session.expiresAt.getTime() < Date.now()) {
-      db.delete(sessions).where(eq(sessions.id, sid)).run();
+      await db.delete(sessions).where(eq(sessions.id, sid));
       return null;
     }
-    const user = db.select().from(users).where(eq(users.id, session.userId)).get();
+    const user = (await db.select().from(users).where(eq(users.id, session.userId)))[0];
     if (!user) return null;
     try {
-      db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, sid)).run();
+      await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, sid));
     } catch {
       /* non-fatal */
     }
@@ -156,7 +152,7 @@ export async function requireUser(): Promise<User> {
 }
 
 export async function getDefaultWorkspace(userId: string) {
-  return db.select().from(workspaces).where(eq(workspaces.ownerId, userId)).get() ?? null;
+  return (await db.select().from(workspaces).where(eq(workspaces.ownerId, userId)))[0] ?? null;
 }
 
 export async function ensureWorkspace(userId: string, _name = "Pribadi") {

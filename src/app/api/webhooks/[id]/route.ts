@@ -17,7 +17,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db.select().from(webhooks).where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id))).get();
+  const row = (await db.select().from(webhooks).where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id))))[0];
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const body = await req.json().catch(() => null);
   const parsed = patchSchema.safeParse(body);
@@ -29,8 +29,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (parsed.data.active !== undefined) patch.active = parsed.data.active;
   if (parsed.data.events) patch.events = parsed.data.events;
   if (parsed.data.url) patch.url = parsed.data.url;
-  db.update(webhooks).set(patch).where(eq(webhooks.id, id)).run();
-  const updated = db.select().from(webhooks).where(eq(webhooks.id, id)).get();
+  await db.update(webhooks).set(patch).where(eq(webhooks.id, id));
+  const updated = (await db.select().from(webhooks).where(eq(webhooks.id, id)))[0];
   return NextResponse.json({ webhook: updated });
 }
 
@@ -39,8 +39,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db.select().from(webhooks).where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id))).get();
+  const row = (await db.select().from(webhooks).where(and(eq(webhooks.id, id), eq(webhooks.workspaceId, ws.id))))[0];
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  db.delete(webhooks).where(eq(webhooks.id, id)).run();
+  await db.delete(webhooks).where(eq(webhooks.id, id));
   return NextResponse.json({ ok: true });
 }

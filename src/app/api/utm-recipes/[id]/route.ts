@@ -19,21 +19,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db
+  const row = (await db
     .select()
     .from(utmRecipes)
-    .where(and(eq(utmRecipes.id, id), eq(utmRecipes.workspaceId, ws.id)))
-    .get();
+    .where(and(eq(utmRecipes.id, id), eq(utmRecipes.workspaceId, ws.id))))[0];
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const body = await req.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
   if (parsed.data.name && parsed.data.name !== row.name) {
-    const dup = db
+    const dup = (await db
       .select({ id: utmRecipes.id })
       .from(utmRecipes)
-      .where(and(eq(utmRecipes.workspaceId, ws.id), eq(utmRecipes.name, parsed.data.name)))
-      .get();
+      .where(and(eq(utmRecipes.workspaceId, ws.id), eq(utmRecipes.name, parsed.data.name))))[0];
     if (dup) return NextResponse.json({ error: "Nama recipe sudah dipakai." }, { status: 409 });
   }
   const patch: Record<string, unknown> = { updatedAt: new Date() };
@@ -43,8 +41,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (parsed.data.utmCampaign !== undefined) patch.utmCampaign = parsed.data.utmCampaign || null;
   if (parsed.data.utmTerm !== undefined) patch.utmTerm = parsed.data.utmTerm || null;
   if (parsed.data.utmContent !== undefined) patch.utmContent = parsed.data.utmContent || null;
-  db.update(utmRecipes).set(patch).where(eq(utmRecipes.id, id)).run();
-  const updated = db.select().from(utmRecipes).where(eq(utmRecipes.id, id)).get();
+  await db.update(utmRecipes).set(patch).where(eq(utmRecipes.id, id));
+  const updated = (await db.select().from(utmRecipes).where(eq(utmRecipes.id, id)))[0];
   return NextResponse.json({ recipe: updated });
 }
 
@@ -53,12 +51,11 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const row = db
+  const row = (await db
     .select()
     .from(utmRecipes)
-    .where(and(eq(utmRecipes.id, id), eq(utmRecipes.workspaceId, ws.id)))
-    .get();
+    .where(and(eq(utmRecipes.id, id), eq(utmRecipes.workspaceId, ws.id))))[0];
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  db.delete(utmRecipes).where(eq(utmRecipes.id, id)).run();
+  await db.delete(utmRecipes).where(eq(utmRecipes.id, id));
   return NextResponse.json({ ok: true });
 }

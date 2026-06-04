@@ -34,12 +34,11 @@ function parseUa(ua: string | null): { device: string; os: string; browser: stri
 export async function GET() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  const rows = db
+  const rows = await db
     .select()
     .from(sessions)
     .where(eq(sessions.userId, ctx.user.id))
-    .orderBy(desc(sessions.lastSeenAt))
-    .all();
+    .orderBy(desc(sessions.lastSeenAt));
   const out = rows.map((s) => ({
     id: s.id,
     isCurrent: s.id === ctx.session.id,

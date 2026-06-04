@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 async function loadPage(username: string) {
-  return db.select().from(linkyPages).where(eq(linkyPages.slug, username)).get() ?? null;
+  return (await db.select().from(linkyPages).where(eq(linkyPages.slug, username)))[0] ?? null;
 }
 
 export async function generateMetadata({

@@ -27,12 +27,11 @@ export async function GET() {
   const ctx = await getSessionUser();
   if (!ctx) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const ws = await ensureWorkspace(ctx.user.id);
-  const rows = db
+  const rows = await db
     .select()
     .from(linkyPages)
     .where(eq(linkyPages.workspaceId, ws.id))
-    .orderBy(desc(linkyPages.createdAt))
-    .all();
+    .orderBy(desc(linkyPages.createdAt));
   return NextResponse.json({ pages: rows });
 }
 
@@ -47,12 +46,12 @@ export async function POST(req: Request) {
   if (isReservedSlug(parsed.data.slug))
     return NextResponse.json({ error: "Slug reserved, coba yang lain." }, { status: 400 });
 
-  const existing = db.select({ id: linkyPages.id }).from(linkyPages).where(eq(linkyPages.slug, parsed.data.slug)).get();
+  const existing = (await db.select({ id: linkyPages.id }).from(linkyPages).where(eq(linkyPages.slug, parsed.data.slug)))[0];
   if (existing) return NextResponse.json({ error: "Username sudah dipakai." }, { status: 409 });
 
   const id = nanoid(14);
   const theme: LinkyPageTheme = { preset: "creator", primary: "#4F46E5", buttonStyle: "filled", font: "inter" };
-  db.insert(linkyPages)
+  await db.insert(linkyPages)
     .values({
       id,
       workspaceId: ws.id,
@@ -63,8 +62,7 @@ export async function POST(req: Request) {
       blocks: defaultBlocks,
       published: true,
       createdBy: ctx.user.id,
-    })
-    .run();
-  const created = db.select().from(linkyPages).where(eq(linkyPages.id, id)).get();
+    });
+  const created = (await db.select().from(linkyPages).where(eq(linkyPages.id, id)))[0];
   return NextResponse.json({ page: created });
 }
