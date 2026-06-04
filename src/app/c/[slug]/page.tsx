@@ -1,19 +1,19 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { resolveLinkBySlug, checkLinkStatus, pickTargetUrl } from "@/lib/resolve-link";
+import { resolveLinkForHost, checkLinkStatus, pickTargetUrl } from "@/lib/resolve-link";
 import { clientIpFromHeaders } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function CloakPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const link = resolveLinkBySlug(slug);
+  const h = await headers();
+  const link = resolveLinkForHost(h.get("host"), slug);
   if (!link) redirect("/not-found");
   const status = checkLinkStatus(link);
   if (status.kind === "expired" || status.kind === "click_limit") redirect("/expired");
   if (status.kind === "password_required") redirect(`/p/${encodeURIComponent(slug)}`);
 
-  const h = await headers();
   const ua = h.get("user-agent");
   const country = h.get("cf-ipcountry") ?? h.get("x-vercel-ip-country");
   const ip = clientIpFromHeaders((k) => h.get(k));

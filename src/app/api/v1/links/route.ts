@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { linkTags, links, tags as tagsTable } from "@/lib/db/schema";
+import { domains, linkTags, links, tags as tagsTable } from "@/lib/db/schema";
 import { generateSlug, isValidSlug } from "@/lib/slug";
 import { createLinkSchema } from "@/lib/validators";
 import { getFaviconUrl, hostOf, isValidUrl, normalizeUrl } from "@/lib/utils";
@@ -51,25 +51,34 @@ export async function POST(req: Request) {
   if (safety.verdict === "malicious") {
     return apiError("unsafe_url", "URL flagged sebagai phishing/malware.", 422, a.auth.rateHeaders);
   }
+  // Optional custom domain (must belong to the key's workspace + be verified).
+  let domainId: string | null = null;
+  if (parsed.data.domainId) {
+    const dom = db
+      .select({ id: domains.id, verified: domains.verified })
+      .from(domains)
+      .where(and(eq(domains.id, parsed.data.domainId), eq(domains.workspaceId, a.auth.workspace.id)))
+      .get();
+    if (!dom) return apiError("not_found", "Domain tidak ditemukan.", 404, a.auth.rateHeaders);
+    if (!dom.verified) return apiError("validation_error", "Domain belum terverifikasi.", 400, a.auth.rateHeaders);
+    domainId = dom.id;
+  }
+  const slugTaken = (s: string) =>
+    db
+      .select({ id: links.id })
+      .from(links)
+      .where(domainId ? and(eq(links.slug, s), eq(links.domainId, domainId)) : and(eq(links.slug, s), isNull(links.domainId)))
+      .get();
+
   let slug = parsed.data.customSlug?.trim() || generateSlug();
   if (parsed.data.customSlug) {
     if (!isValidSlug(slug)) {
       return apiError("invalid_slug", "Slug hanya a-z 0-9 - _ (2–50 char), bukan reserved.", 400, a.auth.rateHeaders);
     }
-    const exists = db
-      .select({ id: links.id })
-      .from(links)
-      .where(and(eq(links.slug, slug), isNull(links.domainId)))
-      .get();
-    if (exists) return apiError("slug_taken", "Slug sudah digunakan.", 409, a.auth.rateHeaders);
+    if (slugTaken(slug)) return apiError("slug_taken", "Slug sudah digunakan.", 409, a.auth.rateHeaders);
   } else {
     for (let i = 0; i < 5; i++) {
-      const exists = db
-        .select({ id: links.id })
-        .from(links)
-        .where(and(eq(links.slug, slug), isNull(links.domainId)))
-        .get();
-      if (!exists) break;
+      if (!slugTaken(slug)) break;
       slug = generateSlug();
     }
   }
@@ -89,7 +98,7 @@ export async function POST(req: Request) {
     .values({
       id,
       workspaceId: a.auth.workspace.id,
-      domainId: null,
+      domainId,
       slug,
       destinationUrl,
       title: parsed.data.title || hostOf(destinationUrl),

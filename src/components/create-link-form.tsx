@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 type Folder = { id: string; name: string; color: string };
 type Tag = { id: string; name: string; color: string };
+type DomainOpt = { id: string; hostname: string; verified: boolean };
 type Recipe = {
   id: string;
   name: string;
@@ -61,6 +62,8 @@ export function CreateLinkForm({
   // Folder & Tags
   const [folderId, setFolderId] = useState<string>(String((initial?.folderId as string) ?? ""));
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [domainId, setDomainId] = useState<string>(String((initial?.domainId as string) ?? ""));
+  const [domainList, setDomainList] = useState<DomainOpt[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const initialTags = (initial?.tags as Tag[] | undefined) ?? [];
@@ -93,6 +96,10 @@ export function CreateLinkForm({
     fetch("/api/utm-recipes")
       .then((r) => r.json())
       .then((d) => setRecipes(d.recipes ?? []))
+      .catch(() => undefined);
+    fetch("/api/domains")
+      .then((r) => r.json())
+      .then((d) => setDomainList((d.domains ?? []).filter((x: DomainOpt) => x.verified)))
       .catch(() => undefined);
   }, []);
 
@@ -208,6 +215,7 @@ export function CreateLinkForm({
         utmTerm: utmTerm || undefined,
         utmContent: utmContent || undefined,
         folderId: folderId || null,
+        domainId: isEdit ? undefined : domainId || null, // domain set on create only
         tagIds: isEdit ? undefined : tagIds, // POST accepts; PATCH uses separate tags endpoint
       };
       const url = isEdit ? `/api/links/${editId}` : "/api/links";
@@ -301,6 +309,31 @@ export function CreateLinkForm({
             <FolderIcon className="h-4 w-4 text-[color:var(--primary)]" />
             Organisasi
           </div>
+
+          {domainList.length > 0 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="domain">Domain</Label>
+              <select
+                id="domain"
+                value={domainId}
+                onChange={(e) => setDomainId(e.target.value)}
+                disabled={isEdit}
+                className="w-full h-10 rounded-[8px] border border-[color:var(--border)] bg-[color:var(--background)] px-3 text-sm disabled:opacity-60"
+              >
+                <option value="">{new URL(appUrl).host} (default)</option>
+                {domainList.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.hostname}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-[color:var(--muted-foreground)]">
+                {isEdit
+                  ? "Domain tidak bisa diubah setelah link dibuat."
+                  : "Pilih custom domain terverifikasi, atau pakai domain default."}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="folder">Folder</Label>

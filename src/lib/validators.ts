@@ -47,6 +47,7 @@ export const createLinkSchema = z.object({
   ogImage: z.string().url().optional().or(z.literal("")),
   cloak: z.boolean().optional(),
   folderId: z.string().max(20).optional().nullable(),
+  domainId: z.string().max(20).optional().nullable(),
   tagIds: z.array(z.string().max(20)).max(50).optional(),
 });
 export type CreateLinkInput = z.infer<typeof createLinkSchema>;

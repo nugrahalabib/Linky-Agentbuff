@@ -3,7 +3,7 @@ import { and, desc, eq, gte, inArray, isNull, like, lte, or, sql } from "drizzle
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { folders as foldersTable, links, linkTags, tags as tagsTable } from "@/lib/db/schema";
+import { domains, folders as foldersTable, links, linkTags, tags as tagsTable } from "@/lib/db/schema";
 import { ensureWorkspace, getSessionUser } from "@/lib/auth";
 import { generateSlug, isValidSlug } from "@/lib/slug";
 import { createLinkSchema } from "@/lib/validators";
@@ -128,6 +128,26 @@ export async function POST(req: Request) {
     );
   }
 
+  // Resolve target domain (custom domain must belong to workspace + be verified).
+  let domainId: string | null = null;
+  if (parsed.data.domainId) {
+    const dom = db
+      .select({ id: domains.id, verified: domains.verified })
+      .from(domains)
+      .where(and(eq(domains.id, parsed.data.domainId), eq(domains.workspaceId, workspace.id)))
+      .get();
+    if (!dom) return NextResponse.json({ error: "Domain tidak ditemukan." }, { status: 400 });
+    if (!dom.verified) return NextResponse.json({ error: "Domain belum terverifikasi." }, { status: 400 });
+    domainId = dom.id;
+  }
+  // Slug uniqueness is scoped per domain (matches the (domain_id, slug) unique index).
+  const slugTaken = (s: string) =>
+    db
+      .select({ id: links.id })
+      .from(links)
+      .where(domainId ? and(eq(links.slug, s), eq(links.domainId, domainId)) : and(eq(links.slug, s), isNull(links.domainId)))
+      .get();
+
   let slug = parsed.data.customSlug?.trim() || generateSlug();
   if (parsed.data.customSlug) {
     if (!isValidSlug(slug)) {
@@ -136,20 +156,10 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const exists = db
-      .select({ id: links.id })
-      .from(links)
-      .where(and(eq(links.slug, slug), isNull(links.domainId)))
-      .get();
-    if (exists) return NextResponse.json({ error: "Slug sudah digunakan." }, { status: 409 });
+    if (slugTaken(slug)) return NextResponse.json({ error: "Slug sudah digunakan." }, { status: 409 });
   } else {
     for (let i = 0; i < 5; i++) {
-      const exists = db
-        .select({ id: links.id })
-        .from(links)
-        .where(and(eq(links.slug, slug), isNull(links.domainId)))
-        .get();
-      if (!exists) break;
+      if (!slugTaken(slug)) break;
       slug = generateSlug();
     }
   }
@@ -171,7 +181,7 @@ export async function POST(req: Request) {
     .values({
       id,
       workspaceId: workspace.id,
-      domainId: null,
+      domainId,
       slug,
       destinationUrl,
       title: parsed.data.title || hostOf(destinationUrl),
