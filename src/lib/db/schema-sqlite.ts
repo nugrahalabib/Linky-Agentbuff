@@ -1,36 +1,28 @@
 import { sql } from "drizzle-orm";
-import {
-  bigserial,
-  boolean,
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 const timestamps = {
-  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch() * 1000)`),
 };
 
-export const users = pgTable(
+export const users = sqliteTable(
   "users",
   {
     id: text("id").primaryKey(),
     email: text("email").notNull(),
+    // Legacy/unused for login (password login removed → Google OAuth). Stays NOT NULL at the DB
+    // level (SQLite can't drop NOT NULL without a risky table rebuild); OAuth users get "".
     passwordHash: text("password_hash").notNull(),
     name: text("name"),
     image: text("image"),
     oauthProvider: text("oauth_provider"),
     oauthSubject: text("oauth_subject"),
-    emailVerifiedAt: timestamp("email_verified_at", { mode: "date", withTimezone: true }),
+    emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
     locale: text("locale").notNull().default("id"),
     ...timestamps,
   },
@@ -40,32 +32,39 @@ export const users = pgTable(
   ],
 );
 
-export const safeBrowsingCache = pgTable(
+export const safeBrowsingCache = sqliteTable(
   "safe_browsing_cache",
   {
     urlHash: text("url_hash").primaryKey(),
-    verdict: text("verdict").notNull(),
+    verdict: text("verdict", { enum: ["safe", "suspicious", "malicious"] }).notNull(),
     threatTypes: text("threat_types"),
-    checkedAt: timestamp("checked_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
-    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }).notNull(),
+    checkedAt: integer("checked_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
   },
   (t) => [index("sbc_expires_idx").on(t.expiresAt)],
 );
 
-export const sessions = pgTable(
+export type SafeBrowsingCache = typeof safeBrowsingCache.$inferSelect;
+
+export const sessions = sqliteTable(
   "sessions",
   {
     id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    userAgent: text("user_agent"),
+    ipHash: text("ip_hash"),
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp_ms" }),
     ...timestamps,
   },
   (t) => [index("sessions_user_id_idx").on(t.userId), index("sessions_expires_idx").on(t.expiresAt)],
 );
 
-export const workspaces = pgTable(
+export const workspaces = sqliteTable(
   "workspaces",
   {
     id: text("id").primaryKey(),
@@ -74,13 +73,15 @@ export const workspaces = pgTable(
     ownerId: text("owner_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    plan: text("plan").notNull().default("free"),
+    plan: text("plan", { enum: ["free", "self_hosted"] })
+      .notNull()
+      .default("free"),
     ...timestamps,
   },
   (t) => [uniqueIndex("workspaces_slug_idx").on(t.slug), index("workspaces_owner_idx").on(t.ownerId)],
 );
 
-export const domains = pgTable(
+export const domains = sqliteTable(
   "domains",
   {
     id: text("id").primaryKey(),
@@ -88,16 +89,18 @@ export const domains = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     hostname: text("hostname").notNull(),
-    verified: boolean("verified").notNull().default(false),
-    sslStatus: text("ssl_status").notNull().default("pending"),
-    isDefault: boolean("is_default").notNull().default(false),
+    verified: integer("verified", { mode: "boolean" }).notNull().default(false),
+    sslStatus: text("ssl_status", { enum: ["pending", "active", "failed"] })
+      .notNull()
+      .default("pending"),
+    isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
     verificationToken: text("verification_token"),
     ...timestamps,
   },
   (t) => [uniqueIndex("domains_hostname_idx").on(t.hostname), index("domains_workspace_idx").on(t.workspaceId)],
 );
 
-export const folders = pgTable(
+export const folders = sqliteTable(
   "folders",
   {
     id: text("id").primaryKey(),
@@ -112,7 +115,7 @@ export const folders = pgTable(
   (t) => [index("folders_workspace_idx").on(t.workspaceId), index("folders_parent_idx").on(t.parentId)],
 );
 
-export const tags = pgTable(
+export const tags = sqliteTable(
   "tags",
   {
     id: text("id").primaryKey(),
@@ -126,7 +129,13 @@ export const tags = pgTable(
   (t) => [uniqueIndex("tags_workspace_name_idx").on(t.workspaceId, t.name)],
 );
 
-export const links = pgTable(
+export interface AbVariant {
+  url: string;
+  weight: number;
+  label?: string;
+}
+
+export const links = sqliteTable(
   "links",
   {
     id: text("id").primaryKey(),
@@ -139,20 +148,20 @@ export const links = pgTable(
     faviconUrl: text("favicon_url"),
     folderId: text("folder_id").references(() => folders.id, { onDelete: "set null" }),
     passwordHash: text("password_hash"),
-    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
     clickLimit: integer("click_limit"),
     iosUrl: text("ios_url"),
     androidUrl: text("android_url"),
-    utmParams: jsonb("utm_params").$type<Record<string, string>>(),
-    geoRules: jsonb("geo_rules").$type<Array<{ country: string; url: string }>>(),
-    abVariants: jsonb("ab_variants").$type<Array<{ url: string; weight: number; label?: string }>>(),
+    utmParams: text("utm_params", { mode: "json" }).$type<Record<string, string>>(),
+    geoRules: text("geo_rules", { mode: "json" }).$type<Array<{ country: string; url: string }>>(),
+    abVariants: text("ab_variants", { mode: "json" }).$type<AbVariant[]>(),
     ogTitle: text("og_title"),
     ogDescription: text("og_description"),
     ogImage: text("og_image"),
-    cloak: boolean("cloak").notNull().default(false),
+    cloak: integer("cloak", { mode: "boolean" }).notNull().default(false),
     clickCount: integer("click_count").notNull().default(0),
-    archived: boolean("archived").notNull().default(false),
-    isAnonymous: boolean("is_anonymous").notNull().default(false),
+    archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+    isAnonymous: integer("is_anonymous", { mode: "boolean" }).notNull().default(false),
     anonOwnerIp: text("anon_owner_ip"),
     createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     ...timestamps,
@@ -168,7 +177,7 @@ export const links = pgTable(
   ],
 );
 
-export const linkTags = pgTable(
+export const linkTags = sqliteTable(
   "link_tags",
   {
     linkId: text("link_id")
@@ -181,31 +190,35 @@ export const linkTags = pgTable(
   (t) => [index("link_tags_link_idx").on(t.linkId), index("link_tags_tag_idx").on(t.tagId)],
 );
 
-export const qrCodes = pgTable(
+export const qrCodes = sqliteTable(
   "qr_codes",
   {
     id: text("id").primaryKey(),
     linkId: text("link_id")
       .notNull()
       .references(() => links.id, { onDelete: "cascade" }),
-    style: jsonb("style").$type<Record<string, unknown>>(),
+    style: text("style", { mode: "json" }).$type<Record<string, unknown>>(),
     logoUrl: text("logo_url"),
     fg: text("fg").notNull().default("#18181B"),
     bg: text("bg").notNull().default("#FFFFFF"),
-    shape: text("shape").notNull().default("square"),
+    shape: text("shape", { enum: ["square", "rounded", "dots"] })
+      .notNull()
+      .default("square"),
     ...timestamps,
   },
   (t) => [index("qr_link_idx").on(t.linkId)],
 );
 
-export const clicks = pgTable(
+export const clicks = sqliteTable(
   "clicks",
   {
-    id: bigserial("id", { mode: "bigint" }).primaryKey(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
     linkId: text("link_id")
       .notNull()
       .references(() => links.id, { onDelete: "cascade" }),
-    ts: timestamp("ts", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    ts: integer("ts", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
     country: text("country"),
     region: text("region"),
     city: text("city"),
@@ -214,7 +227,7 @@ export const clicks = pgTable(
     browser: text("browser"),
     referrer: text("referrer"),
     ipHash: text("ip_hash"),
-    isBot: boolean("is_bot").notNull().default(false),
+    isBot: integer("is_bot", { mode: "boolean" }).notNull().default(false),
     utmSource: text("utm_source"),
     utmMedium: text("utm_medium"),
     utmCampaign: text("utm_campaign"),
@@ -223,7 +236,7 @@ export const clicks = pgTable(
   (t) => [index("clicks_link_ts_idx").on(t.linkId, t.ts), index("clicks_ts_idx").on(t.ts)],
 );
 
-export const apiKeys = pgTable(
+export const apiKeys = sqliteTable(
   "api_keys",
   {
     id: text("id").primaryKey(),
@@ -236,14 +249,14 @@ export const apiKeys = pgTable(
     name: text("name").notNull(),
     keyHash: text("key_hash").notNull(),
     keyPrefix: text("key_prefix").notNull(),
-    lastUsedAt: timestamp("last_used_at", { mode: "date", withTimezone: true }),
-    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
     ...timestamps,
   },
   (t) => [uniqueIndex("api_keys_hash_idx").on(t.keyHash), index("api_keys_workspace_idx").on(t.workspaceId)],
 );
 
-export const abuseReports = pgTable(
+export const abuseReports = sqliteTable(
   "abuse_reports",
   {
     id: text("id").primaryKey(),
@@ -252,13 +265,15 @@ export const abuseReports = pgTable(
       .references(() => links.id, { onDelete: "cascade" }),
     reason: text("reason").notNull(),
     reporterIpHash: text("reporter_ip_hash"),
-    status: text("status").notNull().default("open"),
+    status: text("status", { enum: ["open", "reviewing", "resolved", "rejected"] })
+      .notNull()
+      .default("open"),
     ...timestamps,
   },
   (t) => [index("abuse_link_idx").on(t.linkId), index("abuse_status_idx").on(t.status)],
 );
 
-export const utmRecipes = pgTable(
+export const utmRecipes = sqliteTable(
   "utm_recipes",
   {
     id: text("id").primaryKey(),
@@ -280,7 +295,21 @@ export const utmRecipes = pgTable(
   ],
 );
 
-export const linkyPages = pgTable(
+export interface LinkyPageBlock {
+  id: string;
+  kind: "header" | "link" | "social" | "text" | "divider" | "youtube" | "image" | "countdown";
+  data: Record<string, unknown>;
+}
+
+export interface LinkyPageTheme {
+  preset?: "creator" | "minimal" | "neon" | "student" | "umkm";
+  primary?: string;
+  background?: string;
+  font?: "inter" | "poppins" | "geist";
+  buttonStyle?: "filled" | "outline" | "soft" | "glass";
+}
+
+export const linkyPages = sqliteTable(
   "linky_pages",
   {
     id: text("id").primaryKey(),
@@ -291,29 +320,31 @@ export const linkyPages = pgTable(
     title: text("title").notNull(),
     bio: text("bio"),
     avatarUrl: text("avatar_url"),
-    theme: jsonb("theme").$type<Record<string, unknown>>(),
+    theme: text("theme", { mode: "json" }).$type<LinkyPageTheme>(),
     background: text("background"),
-    blocks: jsonb("blocks")
-      .$type<Array<{ id: string; kind: string; data: Record<string, unknown> }>>()
+    blocks: text("blocks", { mode: "json" })
+      .$type<LinkyPageBlock[]>()
       .notNull()
-      .default(sql`'[]'::jsonb`),
+      .default(sql`'[]'`),
     views: integer("views").notNull().default(0),
-    published: boolean("published").notNull().default(true),
+    published: integer("published", { mode: "boolean" }).notNull().default(true),
     createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     ...timestamps,
   },
   (t) => [uniqueIndex("linky_pages_slug_idx").on(t.slug), index("linky_pages_workspace_idx").on(t.workspaceId)],
 );
 
-export const linkyPageClicks = pgTable(
+export const linkyPageClicks = sqliteTable(
   "linky_page_clicks",
   {
-    id: bigserial("id", { mode: "bigint" }).primaryKey(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
     pageId: text("page_id")
       .notNull()
       .references(() => linkyPages.id, { onDelete: "cascade" }),
     blockId: text("block_id"),
-    ts: timestamp("ts", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    ts: integer("ts", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
     referrer: text("referrer"),
     country: text("country"),
     ipHash: text("ip_hash"),
@@ -321,7 +352,7 @@ export const linkyPageClicks = pgTable(
   (t) => [index("lpc_page_idx").on(t.pageId, t.ts)],
 );
 
-export const webhooks = pgTable(
+export const webhooks = sqliteTable(
   "webhooks",
   {
     id: text("id").primaryKey(),
@@ -330,9 +361,12 @@ export const webhooks = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     url: text("url").notNull(),
     secret: text("secret").notNull(),
-    events: jsonb("events").$type<string[]>().notNull().default(sql`'["link.clicked"]'::jsonb`),
-    active: boolean("active").notNull().default(true),
-    lastDeliveryAt: timestamp("last_delivery_at", { mode: "date", withTimezone: true }),
+    events: text("events", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'["link.clicked"]'`),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    lastDeliveryAt: integer("last_delivery_at", { mode: "timestamp_ms" }),
     lastStatusCode: integer("last_status_code"),
     failureCount: integer("failure_count").notNull().default(0),
     ...timestamps,
@@ -340,7 +374,7 @@ export const webhooks = pgTable(
   (t) => [index("webhooks_workspace_idx").on(t.workspaceId)],
 );
 
-export const webhookDeliveries = pgTable(
+export const webhookDeliveries = sqliteTable(
   "webhook_deliveries",
   {
     id: text("id").primaryKey(),
@@ -349,15 +383,33 @@ export const webhookDeliveries = pgTable(
       .references(() => webhooks.id, { onDelete: "cascade" }),
     event: text("event").notNull(),
     statusCode: integer("status_code"),
-    success: boolean("success").notNull().default(false),
+    success: integer("success", { mode: "boolean" }).notNull().default(false),
     durationMs: integer("duration_ms"),
     error: text("error"),
     requestBody: text("request_body"),
     responseSnippet: text("response_snippet"),
-    ts: timestamp("ts", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    ts: integer("ts", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
   },
   (t) => [index("whd_webhook_idx").on(t.webhookId, t.ts)],
 );
 
-export type PgUser = typeof users.$inferSelect;
-export type PgLink = typeof links.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Link = typeof links.$inferSelect;
+export type NewLink = typeof links.$inferInsert;
+export type Click = typeof clicks.$inferSelect;
+export type NewClick = typeof clicks.$inferInsert;
+export type Workspace = typeof workspaces.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
+export type Tag = typeof tags.$inferSelect;
+export type Folder = typeof folders.$inferSelect;
+export type Domain = typeof domains.$inferSelect;
+export type QrCode = typeof qrCodes.$inferSelect;
+export type UtmRecipe = typeof utmRecipes.$inferSelect;
+export type LinkyPage = typeof linkyPages.$inferSelect;
+export type Webhook = typeof webhooks.$inferSelect;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type AbuseReport = typeof abuseReports.$inferSelect;
