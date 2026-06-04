@@ -30,7 +30,7 @@ Plus referensi sekunder yang dipakai sesuai konteks:
 
 **Linky** — open-source (MIT) URL shortener + link-in-bio (Linktree-style) yang free-forever. Production target: **https://linky.agentbuff.id**. Pemilik repo: **Nugraha Labib Mujaddid** (`agentbuff.id@gmail.com`). Versi saat ini: **v0.5.4**.
 
-- **Stack:** Next.js 15 App Router + React 19 + TypeScript strict + Tailwind v4 + SQLite (Drizzle) + Custom JWT auth + Turbopack dev
+- **Stack:** Next.js 15 App Router + React 19 + TypeScript strict + Tailwind v4 + SQLite (Drizzle) + Google OAuth login (jose JWT sessions) + Turbopack dev
 - **Port dev/start:** `1709` (bukan 3000)
 - **Repo:** https://github.com/nugrahalabib/Linky-Agentbuff
 - **Lisensi:** MIT
@@ -522,7 +522,14 @@ Dua file kunci:
 
 ## Auth & Security
 
-**Sessions:**
+**Login = Google OAuth ONLY** (keputusan owner 2026-06-04 — wajib punya akun, no anonymous). Email/password login DIHAPUS.
+- OAuth2 authorization-code + PKCE + state, implementasi manual di `src/lib/oauth.ts` (tanpa dep baru). Routing generik per-provider: `/api/auth/oauth/[provider]/{start,callback}`.
+- Provider registry: `google` (built-in) + **OIDC generik** (`sso`) yang auto-aktif kalau env `SSO_OIDC_*` diisi — colokan SSO enterprise tanpa ubah kode.
+- `findOrCreateOAuthUser` di `auth.ts`: match (provider,subject) → email (link akun lama) → create. User OAuth `passwordHash=""` (kolom legacy, NOT NULL).
+- Env: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. Tutorial: `docs/AUTH-GOOGLE-SETUP.md`. Redirect URI: `${APP_URL}/api/auth/oauth/google/callback`.
+- ⚠️ Password per-link (link dilindungi sandi) **TETAP ada** & pakai bcrypt — itu beda dari login user.
+
+**Sessions:** (tidak berubah — tetap dipakai setelah OAuth callback)
 - Cookie name: `linky_session`
 - httpOnly, sameSite=lax, secure di prod
 - Default expiry: 30 hari

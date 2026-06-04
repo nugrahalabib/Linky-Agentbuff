@@ -5,6 +5,22 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan semver.
 
 ## [Unreleased]
 
+### BREAKING — Auth is now Google OAuth only
+- **Login dirombak total ke Google OAuth** (OAuth2 authorization-code + PKCE + state), implementasi manual tanpa dependency baru. Email/password login **dihapus** (route signup/login/change-password dihapus; `/signup` → redirect `/signin`). User lama otomatis ter-link via email saat login Google pertama.
+- **Colokan SSO**: provider OIDC generik (`src/lib/oauth.ts`) yang auto-aktif dari env `SSO_OIDC_*` — sambungkan Keycloak/Auth0/Azure AD/Okta tanpa ubah kode. Routing generik `/api/auth/oauth/[provider]/{start,callback}`.
+- **Migration 0012**: `users.image/oauth_provider/oauth_subject` + unique index. Fitur password per-link **tetap ada** (beda dari login).
+- Settings "Keamanan": hapus ganti-sandi (kelola sesi tetap); hapus akun cukup konfirmasi email.
+- Tutorial lengkap: **docs/AUTH-GOOGLE-SETUP.md**. Env baru: `GOOGLE_CLIENT_ID/SECRET` + opsional `SSO_OIDC_*`.
+
+### Added (lanjutan penyelesaian fitur)
+- **A/B Testing + Geo Targeting editor UI** — tab "Targeting" baru di detail link (sebelumnya endpoint-only): A/B sampai 4 varian berbobot + preview share% + tabel hasil; geo sampai 20 aturan negara→URL.
+- **Webhook retry (exp-backoff)** — in-process scheduler 1m/5m/30m (maks 4 attempt), retry hanya pada network error / 5xx / 429; `X-Linky-Delivery-Id` stabil + `X-Linky-Delivery-Attempt`.
+- **Ops**: `scripts/backup.sh` (SQLite `.backup`/`pg_dump` + retensi) dan `.github/workflows/deploy.yml` (deploy SSH ter-gate: verify → compose build/migrate/up → smoke health).
+
+### Removed
+- Dead code `src/components/shorten-form.tsx` (tidak dirender di mana pun).
+- Index `links_anon_owner_idx` yang tidak terpakai (migration 0013) — kolom anon tetap (masih dipakai).
+
 ### Security (hardening 2026-06-04)
 - **Webhook SSRF guard**: `POST /api/webhooks` & `PATCH /api/webhooks/[id]` menolak URL yang menunjuk ke alamat loopback/private/link-local/cloud-metadata atau skema non-http(s) (mencegah server fetch ke `127.0.0.1` / `169.254.169.254`).
 - **Safe Browsing internal-host detection diperluas**: helper baru `isInternalHost`/`isUnsafeRequestUrl` menangkap IPv6 (`::1`, `fc00::/7`, `fe80::/10`), seluruh `127.0.0.0/8`, `0.0.0.0`, serta IPv4 ber-encoding desimal/hex (mis. `2130706433`, `0x7f000001`). + test baru.
