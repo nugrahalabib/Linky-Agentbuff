@@ -47,8 +47,22 @@ export function fireWebhooks(
       timestamp: new Date().toISOString(),
     };
     const body = JSON.stringify(payload);
-    void deliverOne(w.id, w.url, w.secret, event, deliveryId, body);
+    void deliverOne(w.id, w.url, w.secret, event, deliveryId, body, 1);
   }
+}
+
+// Exponential backoff between attempts: 1m → 5m → 30m. MAX_ATTEMPTS=4 (initial + 3 retries).
+// In-process scheduler (setTimeout): retries survive while the Node process stays up; a restart
+// drops pending retries — acceptable for the current single-process deploy. A persistent queue
+// (Redis Streams / a jobs table) would be the next step for at-least-once durability.
+const RETRY_BACKOFF_MS = [60_000, 300_000, 1_800_000];
+const MAX_ATTEMPTS = 4;
+
+function isRetryable(statusCode: number | null): boolean {
+  // network error/timeout (null), server errors, or rate-limited — but never 2xx/4xx (except 429).
+  if (statusCode === null) return true;
+  if (statusCode === 429) return true;
+  return statusCode >= 500;
 }
 
 async function deliverOne(
@@ -58,6 +72,7 @@ async function deliverOne(
   event: WebhookEvent,
   deliveryId: string,
   body: string,
+  attempt: number,
 ): Promise<void> {
   const sig = signPayload(secret, body);
   const startedAt = Date.now();
@@ -76,6 +91,7 @@ async function deliverOne(
         "X-Linky-Event": event,
         "X-Linky-Signature": `sha256=${sig}`,
         "X-Linky-Delivery-Id": deliveryId,
+        "X-Linky-Delivery-Attempt": String(attempt),
       },
       body,
       signal: ctrl.signal,
@@ -93,17 +109,21 @@ async function deliverOne(
     errorMessage = (e as Error).message ?? "fetch failed";
   }
   const durationMs = Date.now() - startedAt;
+  const willRetry = !success && isRetryable(statusCode) && attempt < MAX_ATTEMPTS;
 
   try {
     db.insert(webhookDeliveries)
       .values({
-        id: deliveryId,
+        // Stable delivery_id in the payload (for receiver dedup); unique row id per attempt.
+        id: attempt === 1 ? deliveryId : `${deliveryId}.${attempt}`,
         webhookId,
         event,
         statusCode,
         success,
         durationMs,
-        error: errorMessage,
+        error: willRetry
+          ? `${errorMessage ?? `HTTP ${statusCode}`} — retry ${attempt}/${MAX_ATTEMPTS - 1} dijadwalkan`
+          : errorMessage,
         requestBody: body.slice(0, 4000),
         responseSnippet,
       })
@@ -112,7 +132,12 @@ async function deliverOne(
       .set({
         lastDeliveryAt: new Date(),
         lastStatusCode: statusCode,
-        failureCount: success ? 0 : sql`${webhooks.failureCount} + 1`,
+        // Only settle failureCount when we're done retrying (success resets, final failure increments).
+        failureCount: success
+          ? 0
+          : willRetry
+            ? sql`${webhooks.failureCount}`
+            : sql`${webhooks.failureCount} + 1`,
         updatedAt: new Date(),
       })
       .where(eq(webhooks.id, webhookId))
@@ -122,5 +147,14 @@ async function deliverOne(
     );
   } catch {
     /* non-fatal */
+  }
+
+  if (willRetry) {
+    const delay = RETRY_BACKOFF_MS[attempt - 1] ?? 1_800_000;
+    const timer = setTimeout(() => {
+      void deliverOne(webhookId, url, secret, event, deliveryId, body, attempt + 1);
+    }, delay);
+    // Don't keep the event loop alive solely for a pending retry.
+    if (typeof timer.unref === "function") timer.unref();
   }
 }
