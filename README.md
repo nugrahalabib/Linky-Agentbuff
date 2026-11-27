@@ -360,3 +360,10 @@ MIT. Copyright (c) 2026 Nugraha Labib Mujaddid. See `LICENSE`.
 ---
 
 <sub>Made by [Nugraha Labib Mujaddid](https://github.com/nugrahalabib) · [nugrahalabib.com](https://nugrahalabib.com) · [nugrahalabib@gmail.com](mailto:nugrahalabib@gmail.com)</sub>
+
+## Related
+
+- [AI Co-Founder](https://github.com/nugrahalabib/AgentBuff-Co-Founder)
+- [Presentation Skills](https://github.com/nugrahalabib/AgentBuff-Presentation-Skills)
+- [AgentBuff](https://github.com/nugrahalabib/agentbuff-showcase)
+- [All my work on GitHub](https://github.com/nugrahalabib)
